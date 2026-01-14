@@ -146,3 +146,91 @@ export async function POST(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+// DELETE /api/boards/[boardId]/tasks/[taskId]/attachments?attachmentId=xxx
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ boardId: string; taskId: string }> }
+) {
+  try {
+    const { boardId, taskId } = await params;
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const attachmentId = searchParams.get('attachmentId');
+
+    if (!attachmentId) {
+      return NextResponse.json({ error: 'Attachment ID is required' }, { status: 400 });
+    }
+
+    // Get attachment to find storage path and verify ownership
+    const { data: attachment, error: fetchError } = await supabase
+      .from('attachments')
+      .select('*')
+      .eq('id', attachmentId)
+      .eq('task_id', taskId)
+      .single();
+
+    if (fetchError || !attachment) {
+      return NextResponse.json({ error: 'Attachment not found' }, { status: 404 });
+    }
+
+    // Only allow deletion by the uploader or board owner
+    if (attachment.user_id !== user.id) {
+      // Check if user is board owner
+      const { data: board } = await supabase
+        .from('boards')
+        .select('user_id')
+        .eq('id', boardId)
+        .single();
+
+      if (!board || board.user_id !== user.id) {
+        return NextResponse.json(
+          { error: 'Not authorized to delete this attachment' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Delete from storage
+    const { error: storageError } = await supabase.storage
+      .from('attachments')
+      .remove([attachment.storage_path]);
+
+    if (storageError) {
+      console.error('Storage delete error:', storageError);
+      // Continue to delete DB record even if storage delete fails
+    }
+
+    // Delete from database
+    const { error: deleteError } = await supabase
+      .from('attachments')
+      .delete()
+      .eq('id', attachmentId);
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    // Log activity
+    await supabase.from('activities').insert({
+      board_id: boardId,
+      task_id: taskId,
+      user_id: user.id,
+      action: 'attachment_deleted',
+      details: { attachment_id: attachmentId, filename: attachment.filename },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

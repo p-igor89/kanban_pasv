@@ -156,7 +156,7 @@ e2e/                          # Playwright E2E tests
 
 ```mermaid
 flowchart TD
-    A[🏠 Landing Page] --> B{Authenticated?}
+    A[🏠 Home Page] --> B{Authenticated?}
     B -->|No| C[🔐 Login/Register]
     C --> D[📋 Boards List]
     B -->|Yes| D
