@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2, User, Bell, Mail, Save, Check } from 'lucide-react'
 import toast from 'react-hot-toast';
 import FormInput from '@/components/ui/FormInput';
 import { useFormValidation } from '@/hooks/useFormValidation';
+import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
 
 const validationRules = {
   displayName: {
@@ -80,7 +81,7 @@ export default function SettingsPage() {
 
     setSaving(true);
     try {
-      const response = await fetch('/api/profile', {
+      const response = await fetchWithCsrf('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -105,7 +106,7 @@ export default function SettingsPage() {
   const handleSavePreferences = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/profile', {
+      const response = await fetchWithCsrf('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

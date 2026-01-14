@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Send, Loader2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
 
 interface Profile {
   id: string;
@@ -64,7 +65,7 @@ export default function TaskComments({ boardId, taskId }: TaskCommentsProps) {
 
     setSending(true);
     try {
-      const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}/comments`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/tasks/${taskId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: newComment.trim() }),
@@ -95,7 +96,7 @@ export default function TaskComments({ boardId, taskId }: TaskCommentsProps) {
 
     setDeleting(true);
     try {
-      const response = await fetch(
+      const response = await fetchWithCsrf(
         `/api/boards/${boardId}/tasks/${taskId}/comments?commentId=${deleteCommentId}`,
         {
           method: 'DELETE',

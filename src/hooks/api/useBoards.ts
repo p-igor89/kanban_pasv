@@ -5,7 +5,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query/queryKeys';
 import type { Board, BoardWithData, CreateBoardRequest } from '@/types/board';
-import { createClient } from '@/lib/supabase/client';
 import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
 
 /**
@@ -112,20 +111,18 @@ export function useUpdateBoard(boardId: string) {
 
   return useMutation({
     mutationFn: async (data: Partial<CreateBoardRequest>): Promise<Board> => {
-      const supabase = createClient();
+      const response = await fetchWithCsrf(`/api/boards/${boardId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
 
-      const { data: board, error } = await supabase
-        .from('boards')
-        .update({
-          name: data.name,
-          description: data.description,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', boardId)
-        .select()
-        .single();
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update board');
+      }
 
-      if (error) throw error;
+      const { board } = await response.json();
       return board;
     },
     onSuccess: (data) => {
@@ -146,11 +143,14 @@ export function useDeleteBoard() {
 
   return useMutation({
     mutationFn: async (boardId: string): Promise<void> => {
-      const supabase = createClient();
+      const response = await fetchWithCsrf(`/api/boards/${boardId}`, {
+        method: 'DELETE',
+      });
 
-      const { error } = await supabase.from('boards').delete().eq('id', boardId);
-
-      if (error) throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete board');
+      }
     },
     onSuccess: (_, boardId) => {
       // Remove from cache

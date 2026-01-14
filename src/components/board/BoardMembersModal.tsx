@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { X, Loader2, UserPlus, Crown, Shield, Eye, User, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
 
 interface Profile {
   id: string;
@@ -97,7 +98,7 @@ export default function BoardMembersModal({
 
     setInviting(true);
     try {
-      const response = await fetch(`/api/boards/${boardId}/members`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/members`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
@@ -122,7 +123,7 @@ export default function BoardMembersModal({
 
   const handleRoleChange = async (memberId: string, newRole: 'admin' | 'member' | 'viewer') => {
     try {
-      const response = await fetch(`/api/boards/${boardId}/members/${memberId}`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/members/${memberId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
@@ -151,7 +152,7 @@ export default function BoardMembersModal({
 
     setRemoving(true);
     try {
-      const response = await fetch(`/api/boards/${boardId}/members/${removeTarget.id}`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/members/${removeTarget.id}`, {
         method: 'DELETE',
       });
 

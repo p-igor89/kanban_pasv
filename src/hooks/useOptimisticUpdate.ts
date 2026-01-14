@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
 
 interface OptimisticUpdateOptions<T> {
   onSuccess?: (data: T) => void;
@@ -116,7 +117,7 @@ export function useOptimisticTaskUpdate() {
         currentTask,
         { ...currentTask, ...updates },
         async () => {
-          const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}`, {
+          const response = await fetchWithCsrf(`/api/boards/${boardId}/tasks/${taskId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates),

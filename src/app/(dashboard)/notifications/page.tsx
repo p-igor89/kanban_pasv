@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Bell, CheckCheck, Loader2, ArrowLeft, Mail, UserPlus, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
 
 interface Notification {
   id: string;
@@ -56,7 +57,7 @@ export default function NotificationsPage() {
   const markAllAsRead = async () => {
     setMarking(true);
     try {
-      const response = await fetch('/api/notifications', {
+      const response = await fetchWithCsrf('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mark_all: true }),
@@ -81,7 +82,7 @@ export default function NotificationsPage() {
 
   const markAsRead = async (id: string) => {
     try {
-      const response = await fetch('/api/notifications', {
+      const response = await fetchWithCsrf('/api/notifications', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notification_ids: [id] }),

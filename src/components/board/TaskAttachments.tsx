@@ -1,7 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Paperclip, Upload, Loader2, Trash2, Download, File, Image, FileText } from 'lucide-react';
+import {
+  Paperclip,
+  Upload,
+  Loader2,
+  Trash2,
+  Download,
+  File,
+  Image,
+  FileText,
+  Cloud,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
@@ -23,6 +33,10 @@ interface TaskAttachmentsProps {
   taskId: string;
 }
 
+interface UploadProgress {
+  [filename: string]: number;
+}
+
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProps) {
@@ -31,7 +45,10 @@ export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProp
   const [uploading, setUploading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; filename: string } | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragCounter = useRef(0);
 
   useEffect(() => {
     fetchAttachments();
@@ -57,40 +74,122 @@ export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProp
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error('File size must be less than 10MB');
-      return;
+    await uploadFiles(Array.from(files));
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    // Filter out files that are too large
+    const validFiles: File[] = [];
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        toast.error(`${file.name} is too large. Maximum size is 10MB`);
+      } else {
+        validFiles.push(file);
+      }
     }
 
+    if (validFiles.length === 0) return;
+
     setUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
 
-      const response = await fetchWithCsrf(`/api/boards/${boardId}/tasks/${taskId}/attachments`, {
-        method: 'POST',
-        body: formData,
-      });
+    // Initialize progress for all files
+    const initialProgress: UploadProgress = {};
+    validFiles.forEach((file) => {
+      initialProgress[file.name] = 0;
+    });
+    setUploadProgress(initialProgress);
 
-      const data = await response.json();
+    // Upload files sequentially to avoid overwhelming the server
+    for (const file of validFiles) {
+      try {
+        // Simulate progress (since we can't track actual upload progress with fetch)
+        setUploadProgress((prev) => ({ ...prev, [file.name]: 30 }));
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to upload file');
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetchWithCsrf(`/api/boards/${boardId}/tasks/${taskId}/attachments`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        setUploadProgress((prev) => ({ ...prev, [file.name]: 70 }));
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to upload file');
+        }
+
+        setUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
+        setAttachments((prev) => [...prev, data.attachment]);
+
+        // Remove progress after success
+        setTimeout(() => {
+          setUploadProgress((prev) => {
+            const newProgress = { ...prev };
+            delete newProgress[file.name];
+            return newProgress;
+          });
+        }, 500);
+
+        toast.success(`${file.name} uploaded`);
+      } catch (error) {
+        console.error(`Error uploading ${file.name}:`, error);
+        toast.error(`Failed to upload ${file.name}`);
+
+        // Remove progress on error
+        setUploadProgress((prev) => {
+          const newProgress = { ...prev };
+          delete newProgress[file.name];
+          return newProgress;
+        });
       }
+    }
 
-      setAttachments((prev) => [...prev, data.attachment]);
-      toast.success('File uploaded');
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      toast.error('Failed to upload file');
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    setUploading(false);
+  };
+
+  // Drag and Drop Handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      await uploadFiles(Array.from(files));
     }
   };
 
@@ -149,6 +248,7 @@ export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProp
           <input
             ref={fileInputRef}
             type="file"
+            multiple
             className="hidden"
             onChange={handleFileSelect}
             disabled={uploading}
@@ -163,6 +263,69 @@ export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProp
           </span>
         </label>
       </div>
+
+      {/* Drag and Drop Zone */}
+      <div
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        className={`relative rounded-lg border-2 border-dashed transition-all ${
+          isDragging
+            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+        }`}
+      >
+        <div className="p-6 text-center">
+          <Cloud
+            className={`mx-auto h-12 w-12 mb-3 transition-colors ${
+              isDragging ? 'text-blue-500' : 'text-gray-400 dark:text-gray-500'
+            }`}
+          />
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {isDragging ? (
+              <span className="text-blue-600 dark:text-blue-400 font-medium">
+                Drop files here to upload
+              </span>
+            ) : (
+              <>
+                Drag and drop files here, or{' '}
+                <label className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer font-medium">
+                  browse
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    disabled={uploading}
+                  />
+                </label>
+              </>
+            )}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Maximum file size: 10MB</p>
+        </div>
+      </div>
+
+      {/* Upload Progress */}
+      {Object.entries(uploadProgress).length > 0 && (
+        <div className="space-y-2">
+          {Object.entries(uploadProgress).map(([filename, progress]) => (
+            <div key={filename} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{filename}</p>
+                <span className="text-xs text-gray-500 dark:text-gray-400">{progress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                <div
+                  className="bg-blue-600 h-1.5 rounded-full transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Attachments List */}
       {loading ? (
