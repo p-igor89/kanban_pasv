@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import {
+  CreateTaskSchema,
+  TaskListQuerySchema,
+  validateRequestBody,
+  validateSearchParams,
+} from '@/lib/validation';
+import { sanitizeSearchInput, enforceRateLimit, rateLimitConfigs } from '@/lib/security';
 
 type RouteParams = { params: Promise<{ boardId: string }> };
 
@@ -19,6 +26,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Apply rate limiting for read operations
+    try {
+      enforceRateLimit(user.id, rateLimitConfigs.api.read, 'tasks:read');
+    } catch (error) {
+      if ((error as Error & { code?: string }).code === 'RATE_LIMIT_EXCEEDED') {
+        return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+      }
+      throw error;
+    }
+
     // Verify board belongs to user
     const { data: board } = await supabase
       .from('boards')
@@ -31,26 +48,31 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Board not found' }, { status: 404 });
     }
 
+    // Validate search params using Zod
+    const validation = validateSearchParams(TaskListQuerySchema, searchParams);
+    if (!validation.success) {
+      return validation.error;
+    }
+
+    const { status_id, priority, search } = validation.data;
+
     // Build query with optional filters
     let query = supabase.from('tasks').select('*').eq('board_id', boardId);
 
     // Filter by status
-    const statusId = searchParams.get('status_id');
-    if (statusId) {
-      query = query.eq('status_id', statusId);
+    if (status_id) {
+      query = query.eq('status_id', status_id);
     }
 
     // Filter by priority
-    const priority = searchParams.get('priority');
-    const validPriorities = ['low', 'medium', 'high', 'critical'] as const;
-    if (priority && validPriorities.includes(priority as (typeof validPriorities)[number])) {
-      query = query.eq('priority', priority as (typeof validPriorities)[number]);
+    if (priority) {
+      query = query.eq('priority', priority);
     }
 
-    // Search in title and description
-    const search = searchParams.get('search');
+    // Search in title and description with sanitized input
     if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+      const sanitizedSearch = sanitizeSearchInput(search);
+      query = query.or(`title.ilike.%${sanitizedSearch}%,description.ilike.%${sanitizedSearch}%`);
     }
 
     // Order by status_id and order
@@ -85,6 +107,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Apply rate limiting for write operations
+    try {
+      enforceRateLimit(user.id, rateLimitConfigs.api.write, 'tasks:write');
+    } catch (error) {
+      if ((error as Error & { code?: string }).code === 'RATE_LIMIT_EXCEEDED') {
+        return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+      }
+      throw error;
+    }
+
     // Verify board belongs to user
     const { data: board } = await supabase
       .from('boards')
@@ -97,30 +129,14 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Board not found' }, { status: 404 });
     }
 
-    const body = await request.json();
-    const {
-      title,
-      description,
-      status_id,
-      priority,
-      tags,
-      assignee_name,
-      assignee_color,
-      due_date,
-    } = body;
-
-    // Validation
-    if (!title || typeof title !== 'string') {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    // Validate request body using Zod schema
+    const validation = await validateRequestBody(CreateTaskSchema, request);
+    if (!validation.success) {
+      return validation.error;
     }
 
-    if (title.length > 200) {
-      return NextResponse.json({ error: 'Title must be 200 characters or less' }, { status: 400 });
-    }
-
-    if (!status_id) {
-      return NextResponse.json({ error: 'Status ID is required' }, { status: 400 });
-    }
+    const { title, description, status_id, priority, tags, assignee_name, assignee_color, due_date } =
+      validation.data;
 
     // Verify status belongs to this board
     const { data: status } = await supabase
@@ -132,23 +148,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (!status) {
       return NextResponse.json({ error: 'Status not found in this board' }, { status: 400 });
-    }
-
-    // Validate priority
-    const validPriorities = ['low', 'medium', 'high', 'critical'];
-    if (priority && !validPriorities.includes(priority)) {
-      return NextResponse.json(
-        { error: 'Priority must be one of: low, medium, high, critical' },
-        { status: 400 }
-      );
-    }
-
-    // Validate tags
-    if (tags && (!Array.isArray(tags) || tags.length > 10)) {
-      return NextResponse.json(
-        { error: 'Tags must be an array with max 10 items' },
-        { status: 400 }
-      );
     }
 
     // Get next order for this status
@@ -167,13 +166,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .insert({
         board_id: boardId,
         status_id,
-        title: title.trim(),
-        description: description?.trim() || null,
-        priority: priority || null,
-        tags: tags || [],
-        assignee_name: assignee_name?.trim() || null,
-        assignee_color: assignee_color || null,
-        due_date: due_date || null,
+        title,
+        description,
+        priority,
+        tags,
+        assignee_name,
+        assignee_color,
+        due_date,
         order: nextOrder,
       })
       .select()
