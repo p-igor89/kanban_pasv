@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query/queryKeys';
 import type { Task, Status } from '@/types/board';
 import type { BoardDetailResponse } from './useBoards';
+import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
 
 /**
  * Update board data in cache optimistically
@@ -35,7 +36,7 @@ export function useCreateTaskMutation(boardId: string) {
       priority?: string;
       due_date?: string;
     }): Promise<Task> => {
-      const response = await fetch(`/api/boards/${boardId}/tasks`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -120,7 +121,7 @@ export function useUpdateTaskMutation(boardId: string) {
       taskId: string;
       updates: Partial<Task>;
     }): Promise<Task> => {
-      const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/tasks/${taskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
@@ -177,7 +178,7 @@ export function useDeleteTaskMutation(boardId: string) {
 
   return useMutation({
     mutationFn: async (taskId: string): Promise<void> => {
-      const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/tasks/${taskId}`, {
         method: 'DELETE',
       });
 
@@ -235,7 +236,7 @@ export function useMoveTaskMutation(boardId: string) {
       newStatusId: string;
       newOrder: number;
     }): Promise<void> => {
-      const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}/move`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/tasks/${taskId}/move`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -309,7 +310,7 @@ export function useReorderTasksMutation(boardId: string) {
 
   return useMutation({
     mutationFn: async (tasks: Task[]): Promise<void> => {
-      const response = await fetch(`/api/boards/${boardId}/tasks/reorder`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/tasks/reorder`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -370,7 +371,7 @@ export function useCreateStatusMutation(boardId: string) {
 
   return useMutation({
     mutationFn: async (data: { name: string; color: string }): Promise<Status> => {
-      const response = await fetch(`/api/boards/${boardId}/statuses`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/statuses`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -401,7 +402,7 @@ export function useUpdateStatusMutation(boardId: string) {
       statusId: string;
       data: { name?: string; color?: string };
     }): Promise<Status> => {
-      const response = await fetch(`/api/boards/${boardId}/statuses/${statusId}`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/statuses/${statusId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -426,7 +427,7 @@ export function useDeleteStatusMutation(boardId: string) {
 
   return useMutation({
     mutationFn: async (statusId: string): Promise<void> => {
-      const response = await fetch(`/api/boards/${boardId}/statuses/${statusId}`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/statuses/${statusId}`, {
         method: 'DELETE',
       });
 

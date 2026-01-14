@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query/queryKeys';
 import type { Board, BoardWithData, CreateBoardRequest } from '@/types/board';
 import { createClient } from '@/lib/supabase/client';
+import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
 
 /**
  * Extended Board type with computed fields from API
@@ -82,7 +83,7 @@ export function useCreateBoard() {
 
   return useMutation({
     mutationFn: async (data: CreateBoardRequest): Promise<BoardWithMeta> => {
-      const response = await fetch('/api/boards', {
+      const response = await fetchWithCsrf('/api/boards', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
