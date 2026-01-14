@@ -186,10 +186,11 @@ test.describe('Drag-and-Drop Performance Tests', () => {
 
     await page.waitForSelector('[data-testid="board-column"]', { timeout: 5000 }).catch(() => {});
 
-    // Get initial memory usage
+    // Get initial memory usage (Chrome-specific API)
     const initialMemory = await page.evaluate(() => {
-      if (performance.memory) {
-        return performance.memory.usedJSHeapSize;
+      const perf = performance as Performance & { memory?: { usedJSHeapSize: number } };
+      if (perf.memory) {
+        return perf.memory.usedJSHeapSize;
       }
       return 0;
     });
@@ -218,10 +219,11 @@ test.describe('Drag-and-Drop Performance Tests', () => {
 
       await page.waitForTimeout(500);
 
-      // Get final memory usage
+      // Get final memory usage (Chrome-specific API)
       const finalMemory = await page.evaluate(() => {
-        if (performance.memory) {
-          return performance.memory.usedJSHeapSize;
+        const perf = performance as Performance & { memory?: { usedJSHeapSize: number } };
+        if (perf.memory) {
+          return perf.memory.usedJSHeapSize;
         }
         return 0;
       });

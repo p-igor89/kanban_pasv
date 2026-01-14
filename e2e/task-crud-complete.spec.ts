@@ -174,7 +174,8 @@ test.describe('Complete Task CRUD Operations', () => {
 
       // Check if title input shows validation
       const isInvalid = await titleInput.evaluate((el) => {
-        return el.getAttribute('aria-invalid') === 'true' || el.validity?.valueMissing;
+        const input = el as HTMLInputElement;
+        return el.getAttribute('aria-invalid') === 'true' || input.validity?.valueMissing;
       });
 
       expect(isInvalid).toBeTruthy();
