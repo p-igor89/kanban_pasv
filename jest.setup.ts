@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Jest setup file
 import '@testing-library/jest-dom';
 import { toHaveNoViolations } from 'jest-axe';
@@ -42,16 +43,20 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock Next.js Request/Response for API route tests
 if (typeof globalThis.Request === 'undefined') {
   class MockRequest {
-    url: string;
+    private _url: string;
     method: string;
     headers: any;
     body: any;
 
     constructor(url: string, init?: any) {
-      this.url = url;
+      this._url = url;
       this.method = init?.method || 'GET';
       this.headers = new Map(Object.entries(init?.headers || {}));
       this.body = init?.body;
+    }
+
+    get url() {
+      return this._url;
     }
 
     async json() {
@@ -76,6 +81,10 @@ if (typeof globalThis.Response === 'undefined') {
 
     async json() {
       return JSON.parse(this.body);
+    }
+
+    static json(data: any, init?: any) {
+      return new MockResponse(JSON.stringify(data), init);
     }
   };
 }

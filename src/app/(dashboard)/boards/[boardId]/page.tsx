@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
@@ -20,6 +20,7 @@ import CreateTaskModal from '@/components/board/CreateTaskModal';
 import TaskDrawer from '@/components/board/TaskDrawer';
 import StatusModal from '@/components/board/StatusModal';
 import BoardMembersModal from '@/components/board/BoardMembersModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function BoardPage() {
   const params = useParams();
@@ -28,6 +29,10 @@ export default function BoardPage() {
 
   // Centralized state management
   const { state, actions } = useBoardState();
+
+  // Local state for status deletion
+  const [deletingStatusId, setDeletingStatusId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Drag and drop logic
   const dragAndDrop = useDragAndDrop({
@@ -205,6 +210,36 @@ export default function BoardPage() {
     }
   };
 
+  const handleDeleteStatus = async () => {
+    if (!deletingStatusId) return;
+
+    try {
+      setIsDeleting(true);
+      const response = await fetch(`/api/boards/${boardId}/statuses/${deletingStatusId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        if (response.status === 409) {
+          toast.error(data.error || 'Cannot delete status with tasks');
+        } else {
+          throw new Error('Failed to delete status');
+        }
+        return;
+      }
+
+      await fetchBoard(); // Refetch board to get updated statuses
+      setDeletingStatusId(null);
+      toast.success('Status deleted successfully');
+    } catch (error) {
+      console.error('Error deleting status:', error);
+      toast.error('Failed to delete status');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   /**
    * Permissions
    */
@@ -256,9 +291,7 @@ export default function BoardPage() {
         onTaskDelete={handleDeleteTask}
         onAddTask={actions.openTaskModal}
         onEditStatus={actions.openStatusModal}
-        onDeleteStatus={(_statusId) => {
-          // TODO: Implement status deletion
-        }}
+        onDeleteStatus={setDeletingStatusId}
       />
 
       {/* Modals */}
@@ -292,6 +325,20 @@ export default function BoardPage() {
         boardId={boardId}
         currentUserRole={state.currentUserRole}
         onClose={actions.closeMembersModal}
+      />
+
+      {/* Delete Status Confirmation */}
+      <ConfirmDialog
+        isOpen={!!deletingStatusId}
+        onClose={() => setDeletingStatusId(null)}
+        onConfirm={handleDeleteStatus}
+        title="Delete Status"
+        message="Are you sure you want to delete this status? This action cannot be undone. All tasks must be moved or deleted first."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        icon="delete"
+        loading={isDeleting}
       />
     </div>
   );
