@@ -1,156 +1,242 @@
-# Admin Panel (Kanban Board)
+<div align="center">
 
-[![CI](https://github.com/29DianaYakubuk/adminPanel/actions/workflows/ci.yml/badge.svg)](https://github.com/29DianaYakubuk/adminPanel/actions/workflows/ci.yml)
-[![PR Checks](https://github.com/29DianaYakubuk/adminPanel/actions/workflows/pr-checks.yml/badge.svg)](https://github.com/29DianaYakubuk/adminPanel/actions/workflows/pr-checks.yml)
+# KanbanPro
 
-A Jira-style admin panel with a Kanban board for task management.
+### Modern Kanban Board for Team Collaboration
+
+[![Next.js](https://img.shields.io/badge/Next.js-16.1-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green?logo=supabase)](https://supabase.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+
+[Live Demo](https://kanbanpro.vercel.app) · [Documentation](./DEPLOYMENT.md) · [Architecture](./ARCHITECTURE.md)
+
+</div>
+
+---
+
+## Overview
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌───────────┐  │
+│   │   Backlog   │  │    Todo     │  │ In Progress │  │   Done    │  │
+│   ├─────────────┤  ├─────────────┤  ├─────────────┤  ├───────────┤  │
+│   │ ┌─────────┐ │  │ ┌─────────┐ │  │ ┌─────────┐ │  │           │  │
+│   │ │  Task   │ │  │ │  Task   │ │  │ │  Task   │ │  │           │  │
+│   │ │ ─ ─ ─ ─ │ │  │ │ ─ ─ ─ ─ │ │  │ │ ─ ─ ─ ─ │ │  │           │  │
+│   │ │ 🏷️ Tags │ │  │ │ 📅 Due  │ │  │ │ 👤 User │ │  │           │  │
+│   │ └─────────┘ │  │ └─────────┘ │  │ └─────────┘ │  │           │  │
+│   │ ┌─────────┐ │  │             │  │             │  │           │  │
+│   │ │  Task   │ │  │             │  │             │  │           │  │
+│   │ └─────────┘ │  │             │  │             │  │           │  │
+│   └─────────────┘  └─────────────┘  └─────────────┘  └───────────┘  │
+│                                                                      │
+│   🔍 Search (Ctrl+K)    👥 Share    📊 Activity    ⚙️ Settings       │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Features
+
+| Feature                   | Description                                     |
+| ------------------------- | ----------------------------------------------- |
+| 📋 **Kanban Boards**      | Create unlimited boards with custom columns     |
+| 🎯 **Drag & Drop**        | Intuitive task management                       |
+| 👥 **Team Collaboration** | Invite members with roles (Admin/Member/Viewer) |
+| 💬 **Comments**           | Discuss tasks with your team                    |
+| 📎 **File Attachments**   | Upload files up to 10MB                         |
+| 🔍 **Global Search**      | Find tasks across all boards (Ctrl+K)           |
+| 📊 **Activity History**   | Track all changes                               |
+| 📝 **Templates**          | Start with pre-built board templates            |
+| 🌙 **Dark Mode**          | Easy on the eyes                                |
+| 📱 **PWA Support**        | Install as native app                           |
+| 🔔 **Notifications**      | Stay updated on changes                         |
+
+---
+
+## Quick Start
+
+### 1. Clone & Install
+
+```bash
+git clone <repo-url>
+cd kanban_pasv
+npm install
+```
+
+### 2. Configure Environment
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+### 3. Setup Supabase
+
+1. Create project at [supabase.com](https://supabase.com)
+2. Run SQL migrations from [DEPLOYMENT.md](./DEPLOYMENT.md)
+3. Create `attachments` storage bucket
+
+### 4. Run
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+---
 
 ## Tech Stack
 
-- **Next.js 16** (App Router, Turbopack)
-- **TypeScript**
-- **MongoDB** + Mongoose
-- **@dnd-kit** (Drag & Drop)
-- **Tailwind CSS**
+```
+┌─────────────────────────────────────────────────────┐
+│                    Frontend                          │
+├─────────────────────────────────────────────────────┤
+│  Next.js 16  •  React 19  •  TypeScript  •  Tailwind│
+└─────────────────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────┐
+│                    Supabase                          │
+├─────────────────────────────────────────────────────┤
+│  PostgreSQL  •  Auth  •  Storage  •  Edge Functions │
+└─────────────────────────────────────────────────────┘
+```
+
+---
 
 ## Project Structure
 
 ```
 src/
 ├── app/
-│   ├── api/tasks/          # API endpoints
-│   │   ├── route.ts        # GET, POST /api/tasks
-│   │   └── [id]/route.ts   # PATCH /api/tasks/:id
-│   ├── about/              # About page
-│   ├── privacy/            # Privacy Policy page
-│   ├── terms/              # Terms & Conditions page
-│   ├── layout.tsx          # Root layout
-│   └── page.tsx            # Home page (Board)
+│   ├── (dashboard)/          # Protected routes
+│   │   ├── boards/           # Board list & detail
+│   │   ├── notifications/    # Notifications page
+│   │   └── settings/         # User settings
+│   ├── api/                  # API routes
+│   ├── login/                # Auth pages
+│   └── register/
 ├── components/
-│   ├── Board.tsx           # Kanban board
-│   ├── Column.tsx          # Board column
-│   ├── TaskCard.tsx        # Task card
-│   └── CreateTaskModal.tsx # Modal for creating tasks
-├── lib/
-│   └── mongodb.ts          # MongoDB connection
-├── models/
-│   └── Task.ts             # Mongoose Task model
-└── types/
-    └── task.ts             # TypeScript types
+│   ├── board/                # Board components
+│   │   ├── BoardMembersModal.tsx
+│   │   ├── BoardActivityModal.tsx
+│   │   ├── TaskDrawer.tsx
+│   │   ├── TaskComments.tsx
+│   │   └── TaskAttachments.tsx
+│   ├── GlobalSearch.tsx
+│   └── Header.tsx
+├── contexts/                 # React contexts
+├── lib/                      # Utilities
+└── types/                    # TypeScript types
 ```
 
-## Quick Start
+---
 
-### 1. Clone the repository
+## User Flow
 
-```bash
-git clone <repo-url>
-cd adminPanel
+```mermaid
+flowchart LR
+    A[Register] --> B[Login]
+    B --> C[Boards]
+    C --> D[Create Board]
+    D --> E[Add Tasks]
+    E --> F[Collaborate]
+    F --> G[Track Progress]
 ```
 
-### 2. Install dependencies
+---
 
-```bash
-npm install
-```
+## API Routes
 
-### 3. Set up environment variables
+| Method   | Endpoint                | Description       |
+| -------- | ----------------------- | ----------------- |
+| `GET`    | `/api/boards`           | List all boards   |
+| `POST`   | `/api/boards`           | Create board      |
+| `GET`    | `/api/boards/:id`       | Get board         |
+| `PATCH`  | `/api/boards/:id`       | Update board      |
+| `DELETE` | `/api/boards/:id`       | Delete board      |
+| `GET`    | `/api/boards/:id/tasks` | List tasks        |
+| `POST`   | `/api/boards/:id/tasks` | Create task       |
+| `GET`    | `/api/search`           | Global search     |
+| `GET`    | `/api/notifications`    | Get notifications |
 
-Create a `.env.local` file in the project root:
+Full API documentation: [ARCHITECTURE.md](./ARCHITECTURE.md#api-routes)
 
-```env
-MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority
-```
-
-**Important:** If using MongoDB Atlas, add your IP to Network Access:
-
-1. Go to [MongoDB Atlas](https://cloud.mongodb.com)
-2. Network Access → Add IP Address
-3. Add your IP or `0.0.0.0/0` for access from anywhere
-
-To find your IP:
-
-```bash
-curl -s ipv4.icanhazip.com
-```
-
-### 4. Run the project
-
-```bash
-npm run dev
-```
-
-Open http://localhost:3000
-
-## API Endpoints
-
-| Method | Endpoint         | Description                |
-| ------ | ---------------- | -------------------------- |
-| GET    | `/api/tasks`     | Get all tasks              |
-| POST   | `/api/tasks`     | Create a task              |
-| PATCH  | `/api/tasks/:id` | Update task (status/order) |
-
-## Kanban Columns
-
-- **Backlog** - new tasks
-- **Todo** - planned tasks
-- **In Progress** - tasks in progress
-- **Done** - completed tasks
-
-## Pages
-
-- `/` - Kanban Board (main page)
-- `/about` - About the product
-- `/terms` - Terms & Conditions
-- `/privacy` - Privacy Policy
+---
 
 ## Scripts
 
 ```bash
-npm run dev      # Development server (port 3000)
-npm run build    # Production build
-npm run start    # Production server
-npm run lint     # ESLint
+npm run dev        # Start dev server
+npm run build      # Production build
+npm run start      # Start production
+npm run lint       # Run ESLint
+npm run test       # Run tests
+npm run test:e2e   # Run E2E tests
 ```
 
-## Specification
+---
 
-Full technical specification: [Google Doc](https://docs.google.com/document/d/1fOKsgpbshaWnJS43doW-d9mQguxnTFEUo7y4iC3rqzY)
+## Board Templates
 
-### MVP Requirements
-
-- [x] MongoDB connection
-- [x] CRUD operations for tasks
-- [x] Kanban board display
-- [x] Drag & Drop between columns
-- [x] State persistence across page reloads
-
-### Task Model
-
-| Field       | Type                                | Required |
-| ----------- | ----------------------------------- | -------- |
-| title       | string                              | yes      |
-| description | string                              | no       |
-| status      | Backlog / Todo / In Progress / Done | yes      |
-| order       | number                              | yes      |
-| createdAt   | Date                                | auto     |
-| updatedAt   | Date                                | auto     |
-
-### Development Phases
-
-1. **Phase 1** - MVP basics (MongoDB, CRUD, board display)
-2. **Phase 2** - Drag & Drop implementation
-3. **Phase 3** - Error handling and UX refinement
-
-### Definition of Done
-
-- [x] User can create a task
-- [x] Task appears in Backlog
-- [x] Task can be dragged to another column
-- [x] Status persists after page refresh
-
-## Contributors
-
-- Ihor Peretiatko
+| Template                | Columns                                               |
+| ----------------------- | ----------------------------------------------------- |
+| 📋 **Kanban**           | Backlog → Todo → In Progress → Done                   |
+| 🏃 **Scrum Sprint**     | Sprint Backlog → In Dev → Review → Testing → Done     |
+| 🐛 **Bug Tracking**     | Reported → Confirmed → In Progress → Fixed → Verified |
+| ✍️ **Content Pipeline** | Ideas → Drafting → Review → Published                 |
 
 ---
+
+## Keyboard Shortcuts
+
+| Shortcut        | Action             |
+| --------------- | ------------------ |
+| `Ctrl+K` / `⌘K` | Open global search |
+| `Esc`           | Close modal/drawer |
+
+---
+
+## Documentation
+
+- 📖 [Deployment Guide](./DEPLOYMENT.md) - Deploy to Vercel + Supabase
+- 🏗️ [Architecture](./ARCHITECTURE.md) - System design & diagrams
+- 🗄️ [Database Schema](./DATABASE.md) - Tables & relationships
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create feature branch (`git checkout -b feature/amazing`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing`)
+5. Open Pull Request
+
+---
+
+## License
+
+MIT License - see [LICENSE](./LICENSE) for details.
+
+---
+
+<div align="center">
+
+**Built with ❤️ by Ihor Peretiatko**
+
+[⬆ Back to top](#kanbanpro)
+
+</div>

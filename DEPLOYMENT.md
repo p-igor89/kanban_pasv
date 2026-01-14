@@ -125,7 +125,8 @@ CREATE TABLE IF NOT EXISTS attachments (
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   filename TEXT NOT NULL,
-  file_path TEXT NOT NULL,
+  original_name TEXT,
+  storage_path TEXT NOT NULL,
   file_size INTEGER NOT NULL,
   mime_type TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()

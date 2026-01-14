@@ -80,7 +80,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { title, description, priority, tags, assignee_name, assignee_color, due_date } = body;
+    const {
+      title,
+      description,
+      priority,
+      tags,
+      assignee_name,
+      assignee_color,
+      due_date,
+      status_id,
+      order,
+    } = body;
 
     // Validation
     if (title !== undefined) {
@@ -118,6 +128,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (assignee_name !== undefined) updateData.assignee_name = assignee_name?.trim() || null;
     if (assignee_color !== undefined) updateData.assignee_color = assignee_color || null;
     if (due_date !== undefined) updateData.due_date = due_date || null;
+    if (status_id !== undefined) updateData.status_id = status_id;
+    if (order !== undefined) updateData.order = order;
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
@@ -144,6 +156,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     console.error('Error in PUT /api/boards/[boardId]/tasks/[taskId]:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+// PATCH /api/boards/[boardId]/tasks/[taskId] - Update task (alias for PUT)
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  return PUT(request, { params });
 }
 
 // DELETE /api/boards/[boardId]/tasks/[taskId] - Delete task
