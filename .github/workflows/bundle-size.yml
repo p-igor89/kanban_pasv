@@ -1,0 +1,212 @@
+name: Bundle Size Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'next.config.ts'
+      - 'tailwind.config.ts'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  bundle-size:
+    name: Check Bundle Size
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build project
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Analyze bundle (PR)
+        id: analyze-pr
+        run: |
+          # Get bundle sizes from build output
+          echo "Analyzing PR bundle sizes..."
+
+          # Main bundle
+          MAIN_SIZE=$(find .next/static/chunks/pages -name '_app-*.js' -exec wc -c {} \; | awk '{sum+=$1} END {print sum}')
+          echo "main_size=$MAIN_SIZE" >> $GITHUB_OUTPUT
+
+          # Total size
+          TOTAL_SIZE=$(du -sb .next/static | awk '{print $1}')
+          echo "total_size=$TOTAL_SIZE" >> $GITHUB_OUTPUT
+
+          # Chunk count
+          CHUNK_COUNT=$(find .next/static/chunks -name '*.js' | wc -l)
+          echo "chunk_count=$CHUNK_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Build main branch
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Analyze bundle (main)
+        id: analyze-main
+        run: |
+          # Get bundle sizes from main branch
+          echo "Analyzing main bundle sizes..."
+
+          # Main bundle
+          MAIN_SIZE=$(find .next/static/chunks/pages -name '_app-*.js' -exec wc -c {} \; | awk '{sum+=$1} END {print sum}')
+          echo "main_size=$MAIN_SIZE" >> $GITHUB_OUTPUT
+
+          # Total size
+          TOTAL_SIZE=$(du -sb .next/static | awk '{print $1}')
+          echo "total_size=$TOTAL_SIZE" >> $GITHUB_OUTPUT
+
+          # Chunk count
+          CHUNK_COUNT=$(find .next/static/chunks -name '*.js' | wc -l)
+          echo "chunk_count=$CHUNK_COUNT" >> $GITHUB_OUTPUT
+
+      - name: Calculate diff and check limits
+        id: check
+        run: |
+          # Calculate diffs
+          PR_TOTAL=${{ steps.analyze-pr.outputs.total_size }}
+          MAIN_TOTAL=${{ steps.analyze-main.outputs.total_size }}
+          DIFF=$((PR_TOTAL - MAIN_TOTAL))
+          DIFF_PCT=$(awk "BEGIN {printf \"%.2f\", ($DIFF / $MAIN_TOTAL) * 100}")
+
+          echo "diff=$DIFF" >> $GITHUB_OUTPUT
+          echo "diff_pct=$DIFF_PCT" >> $GITHUB_OUTPUT
+
+          # Set status
+          if [ $DIFF -gt 102400 ]; then  # 100KB increase
+            echo "status=⚠️ Warning" >> $GITHUB_OUTPUT
+            echo "status_emoji=⚠️" >> $GITHUB_OUTPUT
+          elif [ $DIFF -gt 51200 ]; then  # 50KB increase
+            echo "status=⚡ Caution" >> $GITHUB_OUTPUT
+            echo "status_emoji=⚡" >> $GITHUB_OUTPUT
+          elif [ $DIFF -lt -51200 ]; then  # 50KB decrease
+            echo "status=🎉 Reduced!" >> $GITHUB_OUTPUT
+            echo "status_emoji=🎉" >> $GITHUB_OUTPUT
+          else
+            echo "status=✅ Good" >> $GITHUB_OUTPUT
+            echo "status_emoji=✅" >> $GITHUB_OUTPUT
+          fi
+
+          # Format sizes (bytes to KB)
+          PR_TOTAL_KB=$(awk "BEGIN {printf \"%.2f\", $PR_TOTAL / 1024}")
+          MAIN_TOTAL_KB=$(awk "BEGIN {printf \"%.2f\", $MAIN_TOTAL / 1024}")
+          DIFF_KB=$(awk "BEGIN {printf \"%.2f\", $DIFF / 1024}")
+
+          echo "pr_total_kb=$PR_TOTAL_KB" >> $GITHUB_OUTPUT
+          echo "main_total_kb=$MAIN_TOTAL_KB" >> $GITHUB_OUTPUT
+          echo "diff_kb=$DIFF_KB" >> $GITHUB_OUTPUT
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const status = '${{ steps.check.outputs.status }}';
+            const statusEmoji = '${{ steps.check.outputs.status_emoji }}';
+            const prTotal = '${{ steps.check.outputs.pr_total_kb }}';
+            const mainTotal = '${{ steps.check.outputs.main_total_kb }}';
+            const diff = '${{ steps.check.outputs.diff_kb }}';
+            const diffPct = '${{ steps.check.outputs.diff_pct }}';
+            const prChunks = '${{ steps.analyze-pr.outputs.chunk_count }}';
+            const mainChunks = '${{ steps.analyze-main.outputs.chunk_count }}';
+
+            const diffSign = parseFloat(diff) > 0 ? '+' : '';
+            const diffColor = parseFloat(diff) > 50 ? '🔴' : parseFloat(diff) > 25 ? '🟡' : '🟢';
+
+            const body = `## ${statusEmoji} Bundle Size Report
+
+            | Branch | Total Size | Chunks |
+            |--------|-----------|--------|
+            | **PR** | ${prTotal} KB | ${prChunks} |
+            | **main** | ${mainTotal} KB | ${mainChunks} |
+            | **Diff** | ${diffColor} ${diffSign}${diff} KB (${diffSign}${diffPct}%) | ${prChunks - mainChunks} |
+
+            ### Status: ${status}
+
+            ${parseFloat(diff) > 100 ? '⚠️ **Warning**: Bundle size increased by more than 100KB!' : ''}
+            ${parseFloat(diff) > 50 && parseFloat(diff) <= 100 ? '⚡ **Caution**: Bundle size increased by more than 50KB.' : ''}
+            ${parseFloat(diff) < -50 ? '🎉 **Great job!** Bundle size reduced!' : ''}
+            ${Math.abs(parseFloat(diff)) <= 50 ? '✅ Bundle size change is within acceptable range.' : ''}
+
+            ### Guidelines
+            - ✅ **Good**: Change < ±50KB
+            - ⚡ **Caution**: Change between 50-100KB
+            - ⚠️ **Warning**: Change > 100KB
+
+            <details>
+            <summary>💡 Tips to reduce bundle size</summary>
+
+            - Use dynamic imports for large components
+            - Check for duplicate dependencies
+            - Enable tree shaking
+            - Use Next.js Image optimization
+            - Consider code splitting
+            - Analyze with \`ANALYZE=true npm run build\`
+            </details>
+
+            ---
+            📦 *Automated by Bundle Size Check workflow*
+            `;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user?.type === 'Bot' &&
+              comment.body?.includes('Bundle Size Report')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Fail if bundle size increased significantly
+        if: steps.check.outputs.status == '⚠️ Warning'
+        run: |
+          echo "::warning::Bundle size increased by more than 100KB"
+          echo "Consider optimizing your changes or splitting large components"
+          # Uncomment to fail the build:
+          # exit 1

@@ -12,6 +12,8 @@ jest.mock('@/contexts/AuthContext', () => ({
 jest.mock('@/components/ThemeProvider', () => ({
   useTheme: () => ({
     theme: 'light',
+    resolvedTheme: 'light',
+    setTheme: jest.fn(),
     toggleTheme: jest.fn(),
   }),
 }));

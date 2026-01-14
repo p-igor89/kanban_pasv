@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { SearchQuerySchema, validateSearchParams } from '@/lib/validation';
+import { sanitizeSearchInput, enforceRateLimit, rateLimitConfigs } from '@/lib/security';
 
 // GET /api/search?q=query
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get('q');
-
-    if (!query?.trim()) {
-      return NextResponse.json({ results: [] });
-    }
 
     const supabase = await createClient();
 
@@ -20,6 +17,28 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Apply rate limiting for search operations
+    try {
+      enforceRateLimit(user.id, rateLimitConfigs.api.search, 'search');
+    } catch (error) {
+      if ((error as Error & { code?: string }).code === 'RATE_LIMIT_EXCEEDED') {
+        return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+      }
+      throw error;
+    }
+
+    // Validate search params using Zod schema
+    const validation = validateSearchParams(SearchQuerySchema, searchParams);
+    if (!validation.success) {
+      // Return empty results for missing/invalid query (matches original behavior)
+      return NextResponse.json({ results: [] });
+    }
+
+    const { q: query, limit } = validation.data;
+
+    // Sanitize the search query for SQL LIKE/ILIKE operations
+    const sanitizedQuery = sanitizeSearchInput(query);
 
     // Use the search function we created in the migration
     const { data: results, error } = await supabase.rpc('search_tasks', {
@@ -45,8 +64,8 @@ export async function GET(request: NextRequest) {
           statuses!inner(name)
         `
         )
-        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
-        .limit(50);
+        .or(`title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%`)
+        .limit(limit);
 
       if (fallbackError) {
         return NextResponse.json({ error: fallbackError.message }, { status: 500 });

@@ -91,18 +91,35 @@ function BoardTaskCard({ task, onDelete, onClick, isDragOverlay }: BoardTaskCard
     if (!isDragging && onClick) onClick(task);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!isDragging && onClick) onClick(task);
+    }
+    if (e.key === 'Delete' && onDelete) {
+      e.preventDefault();
+      onDelete(task.id);
+    }
+  };
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
+      role="listitem"
+      aria-roledescription="draggable task"
+      aria-label={`Task: ${task.title}${task.priority ? `, Priority: ${task.priority}` : ''}${task.due_date ? `, Due: ${formatDueDate(task.due_date)}` : ''}`}
+      tabIndex={0}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       className={`
         p-3 rounded-lg bg-white dark:bg-gray-800 shadow-sm relative group
         cursor-grab active:cursor-grabbing
         transition-all duration-200 ease-out
         hover:shadow-md hover:scale-[1.02]
+        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
         ${isDragging ? 'shadow-lg ring-2 ring-blue-400 scale-105' : ''}
         ${isDragOverlay ? 'shadow-xl rotate-3' : ''}
       `}
@@ -112,9 +129,10 @@ function BoardTaskCard({ task, onDelete, onClick, isDragOverlay }: BoardTaskCard
         <button
           onClick={handleDelete}
           onPointerDown={(e) => e.stopPropagation()}
-          className="absolute top-1 right-1 p-1 rounded-md bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          aria-label={`Delete task: ${task.title}`}
+          className="absolute top-1 right-1 p-1 rounded-md bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity z-10"
         >
-          <Trash2 className="w-3 h-3" />
+          <Trash2 className="w-3 h-3" aria-hidden="true" />
         </button>
       )}
 
@@ -157,8 +175,9 @@ function BoardTaskCard({ task, onDelete, onClick, isDragOverlay }: BoardTaskCard
                     ? 'text-yellow-600 dark:text-yellow-500'
                     : 'text-gray-500 dark:text-gray-400'
               }`}
+              aria-label={`Due date: ${formatDueDate(task.due_date)}`}
             >
-              <Calendar className="w-3 h-3" />
+              <Calendar className="w-3 h-3" aria-hidden="true" />
               <span>{formatDueDate(task.due_date)}</span>
             </div>
           )}
@@ -168,6 +187,8 @@ function BoardTaskCard({ task, onDelete, onClick, isDragOverlay }: BoardTaskCard
               className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium text-white"
               style={{ backgroundColor: task.assignee_color || '#6b7280' }}
               title={task.assignee_name}
+              role="img"
+              aria-label={`Assigned to ${task.assignee_name}`}
             >
               {getInitials(task.assignee_name)}
             </div>

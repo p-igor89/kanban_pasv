@@ -7,6 +7,7 @@ import ToastProvider from '@/components/ToastProvider';
 import PageSuspenseFallback from '@/components/PageSuspenseFallback';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ServiceWorkerProvider from '@/components/ServiceWorkerProvider';
+import { QueryProvider } from '@/providers/QueryProvider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -57,12 +58,42 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('theme') || 'dark';
-                  document.documentElement.setAttribute('data-theme', theme);
-                  if (theme === 'dark') {
-                    document.documentElement.classList.add('dark');
+                  var STORAGE_KEY = 'kanbanpro-theme';
+                  var VALID_THEMES = ['light', 'dark', 'system'];
+                  var raw = localStorage.getItem(STORAGE_KEY);
+                  var stored = null;
+
+                  // Safely parse JSON-stored theme
+                  if (raw) {
+                    try {
+                      stored = JSON.parse(raw);
+                    } catch (e) {
+                      stored = null;
+                    }
                   }
-                } catch (e) {}
+
+                  // Validate theme value
+                  var theme = (stored && VALID_THEMES.indexOf(stored) !== -1) ? stored : 'system';
+
+                  // Resolve 'system' to actual theme
+                  var resolved = theme;
+                  if (theme === 'system') {
+                    resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  }
+
+                  // Apply theme to DOM
+                  document.documentElement.setAttribute('data-theme', resolved);
+                  document.documentElement.style.colorScheme = resolved;
+                  if (resolved === 'dark') {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {
+                  // Fallback to light theme on any error
+                  document.documentElement.setAttribute('data-theme', 'light');
+                  document.documentElement.style.colorScheme = 'light';
+                }
               })();
             `,
           }}
@@ -70,13 +101,15 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
-          <AuthProvider>
-            <main className="scroll-smooth">
-              <Suspense fallback={<PageSuspenseFallback />}>{children}</Suspense>
-            </main>
-            <ToastProvider />
-            <ServiceWorkerProvider />
-          </AuthProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <main className="scroll-smooth">
+                <Suspense fallback={<PageSuspenseFallback />}>{children}</Suspense>
+              </main>
+              <ToastProvider />
+              <ServiceWorkerProvider />
+            </AuthProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>
