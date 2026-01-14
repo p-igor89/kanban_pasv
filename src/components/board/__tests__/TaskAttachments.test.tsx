@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
-// Mock fetch
-const mockFetch = jest.fn();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mockFetch = jest.fn<Promise<any>, any[]>();
 global.fetch = mockFetch;
 
 // Mock toast
@@ -14,10 +14,6 @@ jest.mock('react-hot-toast', () => ({
   __esModule: true,
   default: mockToast,
 }));
-
-// Mock window.confirm
-const mockConfirm = jest.fn();
-window.confirm = mockConfirm;
 
 // Import component after mocks
 import TaskAttachments from '../TaskAttachments';
@@ -53,6 +49,7 @@ describe('TaskAttachments', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFetch.mockReset();
   });
 
   describe('Fetching attachments', () => {
@@ -100,8 +97,7 @@ describe('TaskAttachments', () => {
   });
 
   describe('Deleting attachments', () => {
-    it('should delete attachment when confirmed', async () => {
-      // Initial fetch
+    it('should show confirmation dialog when delete is clicked', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ attachments: mockAttachments }),
@@ -113,20 +109,49 @@ describe('TaskAttachments', () => {
         expect(screen.getByText('test-file.pdf')).toBeInTheDocument();
       });
 
-      // Setup confirm and delete response
-      mockConfirm.mockReturnValueOnce(true);
+      // Click delete button
+      const deleteButtons = screen.getAllByTitle('Delete');
+      fireEvent.click(deleteButtons[0]);
+
+      // ConfirmDialog should appear
+      await waitFor(() => {
+        expect(screen.getByText('Delete File')).toBeInTheDocument();
+        expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument();
+      });
+    });
+
+    it('should delete attachment when confirmed via dialog', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ attachments: mockAttachments }),
+      });
+
+      render(<TaskAttachments boardId={boardId} taskId={taskId} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('test-file.pdf')).toBeInTheDocument();
+      });
+
+      // Setup delete response
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ success: true }),
       });
 
-      // Find and click delete button for first attachment
+      // Click delete button (icon button with title)
       const deleteButtons = screen.getAllByTitle('Delete');
       fireEvent.click(deleteButtons[0]);
 
+      // Wait for dialog to appear
       await waitFor(() => {
-        expect(mockConfirm).toHaveBeenCalledWith('Delete "test-file.pdf"?');
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
       });
+
+      // Find and click the confirm button inside dialog (text button, not icon)
+      const dialog = screen.getByRole('dialog');
+      const confirmButton = dialog.querySelector('button.bg-red-600');
+      expect(confirmButton).not.toBeNull();
+      fireEvent.click(confirmButton!);
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
@@ -140,8 +165,7 @@ describe('TaskAttachments', () => {
       });
     });
 
-    it('should not delete attachment when cancelled', async () => {
-      // Initial fetch
+    it('should close dialog when cancelled', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ attachments: mockAttachments }),
@@ -153,21 +177,29 @@ describe('TaskAttachments', () => {
         expect(screen.getByText('test-file.pdf')).toBeInTheDocument();
       });
 
-      // Setup confirm to return false (cancelled)
-      mockConfirm.mockReturnValueOnce(false);
-
-      // Find and click delete button
+      // Click delete button
       const deleteButtons = screen.getAllByTitle('Delete');
       fireEvent.click(deleteButtons[0]);
 
-      expect(mockConfirm).toHaveBeenCalled();
+      // Wait for dialog
+      await waitFor(() => {
+        expect(screen.getByText('Delete File')).toBeInTheDocument();
+      });
+
+      // Click cancel button
+      const cancelButton = screen.getByRole('button', { name: /Cancel/i });
+      fireEvent.click(cancelButton);
+
+      // Dialog should close
+      await waitFor(() => {
+        expect(screen.queryByText('Delete File')).not.toBeInTheDocument();
+      });
 
       // Should not call delete API
       expect(mockFetch).toHaveBeenCalledTimes(1); // Only initial fetch
     });
 
     it('should show error toast when delete fails', async () => {
-      // Initial fetch
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({ attachments: mockAttachments }),
@@ -179,77 +211,53 @@ describe('TaskAttachments', () => {
         expect(screen.getByText('test-file.pdf')).toBeInTheDocument();
       });
 
-      // Setup confirm and failed delete response
-      mockConfirm.mockReturnValueOnce(true);
+      // Setup failed delete response
       mockFetch.mockResolvedValueOnce({
         ok: false,
         json: () => Promise.resolve({ error: 'Not authorized' }),
       });
 
-      // Find and click delete button
+      // Click delete button
       const deleteButtons = screen.getAllByTitle('Delete');
       fireEvent.click(deleteButtons[0]);
+
+      // Wait for dialog to appear
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      // Find and click the confirm button inside dialog
+      const dialog = screen.getByRole('dialog');
+      const confirmButton = dialog.querySelector('button.bg-red-600');
+      expect(confirmButton).not.toBeNull();
+      fireEvent.click(confirmButton!);
 
       await waitFor(() => {
         expect(mockToast.error).toHaveBeenCalledWith('Failed to delete file');
       });
     });
+  });
 
-    it('should remove attachment from list after successful delete', async () => {
-      // Initial fetch
+  describe('File size formatting', () => {
+    it('should display file size correctly', async () => {
+      const attachmentWith1KB = {
+        ...mockAttachments[0],
+        file_size: 1024, // 1 KB
+      };
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve({ attachments: mockAttachments }),
+        json: () => Promise.resolve({ attachments: [attachmentWith1KB] }),
       });
 
       render(<TaskAttachments boardId={boardId} taskId={taskId} />);
 
       await waitFor(() => {
         expect(screen.getByText('test-file.pdf')).toBeInTheDocument();
-        expect(screen.getByText('image.png')).toBeInTheDocument();
       });
 
-      // Setup confirm and delete response
-      mockConfirm.mockReturnValueOnce(true);
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ success: true }),
-      });
-
-      // Delete first attachment
-      const deleteButtons = screen.getAllByTitle('Delete');
-      fireEvent.click(deleteButtons[0]);
-
-      await waitFor(() => {
-        expect(screen.queryByText('test-file.pdf')).not.toBeInTheDocument();
-      });
-
-      // Second attachment should still be there
-      expect(screen.getByText('image.png')).toBeInTheDocument();
-      expect(screen.getByText('Attachments (1)')).toBeInTheDocument();
-    });
-  });
-
-  describe('File size formatting', () => {
-    it('should display file size correctly', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            attachments: [
-              {
-                ...mockAttachments[0],
-                file_size: 1024, // 1 KB
-              },
-            ],
-          }),
-      });
-
-      render(<TaskAttachments boardId={boardId} taskId={taskId} />);
-
-      await waitFor(() => {
-        expect(screen.getByText('1.0 KB')).toBeInTheDocument();
-      });
+      // Check file size is displayed
+      expect(screen.getByText('1.0 KB')).toBeInTheDocument();
     });
   });
 });

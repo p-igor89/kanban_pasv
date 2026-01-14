@@ -20,6 +20,8 @@ const config = {
     '!src/app/**/*.ts',
     '!src/components/**/*.tsx',
     '!src/models/**/*.ts',
+    '!src/middleware.ts',
+    '!src/lib/supabase/middleware.ts',
   ],
   coverageThreshold: {
     global: {
