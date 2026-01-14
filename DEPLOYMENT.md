@@ -315,7 +315,29 @@ CREATE TRIGGER on_auth_user_created
 1. Go to **Authentication > Providers**
 2. Enable **Email** provider (enabled by default)
 3. Configure email templates in **Authentication > Email Templates**
-4. (Optional) Enable social providers (Google, GitHub, etc.)
+4. Configure SMTP for email delivery (required for email confirmation):
+   - Go to **Project Settings** → **Authentication** → **SMTP Settings**
+   - Enable **Custom SMTP**
+   - Use Resend, SendGrid, or similar service
+
+#### Google OAuth Setup
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project or select existing
+3. Go to **APIs & Services** → **Credentials**
+4. Create **OAuth 2.0 Client ID** (Web application)
+5. Add authorized redirect URI: `https://your-project.supabase.co/auth/v1/callback`
+6. In Supabase: **Authentication** → **Providers** → **Google**
+7. Add Client ID and Client Secret
+
+#### GitHub OAuth Setup
+
+1. Go to [GitHub Settings → Developer Settings](https://github.com/settings/developers)
+2. Create **New OAuth App**
+3. Set Homepage URL: `https://your-app.vercel.app`
+4. Set Authorization callback URL: `https://your-project.supabase.co/auth/v1/callback`
+5. In Supabase: **Authentication** → **Providers** → **GitHub**
+6. Add Client ID and Client Secret
 
 ### 4. Configure Storage (for file attachments)
 

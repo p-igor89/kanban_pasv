@@ -4,12 +4,13 @@
 
 ### Modern Kanban Board for Team Collaboration
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.1-black?logo=next.js)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.1-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green?logo=supabase)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+[![Tests](https://img.shields.io/badge/Tests-138%20passing-brightgreen)](./src)
 
-[Live Demo](https://kanbanpro.vercel.app) · [Documentation](./DEPLOYMENT.md) · [Architecture](./ARCHITECTURE.md)
+[Live Demo](https://kanban-pasv-sigma.vercel.app) · [Documentation](./DEPLOYMENT.md) · [Architecture](./ARCHITECTURE.md)
 
 </div>
 
@@ -103,14 +104,14 @@ Open [http://localhost:3000](http://localhost:3000)
 ┌─────────────────────────────────────────────────────┐
 │                    Frontend                          │
 ├─────────────────────────────────────────────────────┤
-│  Next.js 16  •  React 19  •  TypeScript  •  Tailwind│
+│  Next.js 15  •  React 19  •  TypeScript  •  Tailwind│
 └─────────────────────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────┐
 │                    Supabase                          │
 ├─────────────────────────────────────────────────────┤
-│  PostgreSQL  •  Auth  •  Storage  •  Edge Functions │
+│  PostgreSQL  •  Auth  •  Storage  •  Realtime       │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -138,8 +139,15 @@ src/
 │   ├── GlobalSearch.tsx
 │   └── Header.tsx
 ├── contexts/                 # React contexts
+├── hooks/                    # Custom hooks
+│   ├── useDebounce.ts        # Debounce & throttle
+│   ├── useLocalStorage.ts    # Cache & persistence
+│   ├── usePagination.ts      # Infinite scroll
+│   └── useRealtimeBoard.ts   # Supabase realtime
 ├── lib/                      # Utilities
 └── types/                    # TypeScript types
+
+e2e/                          # Playwright E2E tests
 ```
 
 ---
@@ -183,8 +191,33 @@ npm run dev        # Start dev server
 npm run build      # Production build
 npm run start      # Start production
 npm run lint       # Run ESLint
-npm run test       # Run tests
+npm run test       # Run unit tests
 npm run test:e2e   # Run E2E tests
+```
+
+---
+
+## Testing
+
+**138 tests** covering components, hooks, utilities, and E2E flows.
+
+| Category        | Tests |
+| --------------- | ----- |
+| Component tests | ~60   |
+| Hook tests      | ~30   |
+| Utility tests   | ~25   |
+| Context tests   | ~15   |
+| E2E tests       | ~8    |
+
+```bash
+# Run all tests
+npm test
+
+# Run with coverage
+npm test -- --coverage
+
+# Run E2E tests
+npm run test:e2e
 ```
 
 ---
