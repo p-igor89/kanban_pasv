@@ -1,23 +1,32 @@
 'use client';
 
-import { DndContext, closestCorners, DragOverlay } from '@dnd-kit/core';
-import type { SensorDescriptor, SensorOptions } from '@dnd-kit/core';
+import {
+  DndContext,
+  closestCorners,
+  DragOverlay,
+  type DragStartEvent,
+  type DragOverEvent,
+  type DragEndEvent,
+  type SensorDescriptor,
+  type SensorOptions,
+} from '@dnd-kit/core';
 import BoardColumn from './BoardColumn';
 import BoardTaskCard from './BoardTaskCard';
-import type { BoardWithData, Task } from '@/types/board';
+import type { BoardWithData, Task, Status } from '@/types/board';
 
 interface BoardColumnsProps {
   board: BoardWithData;
   canEdit: boolean;
   sensors: SensorDescriptor<SensorOptions>[];
   activeTask: Task | null;
-  onDragStart: (event: any) => void;
-  onDragOver: (event: any) => void;
-  onDragEnd: (event: any) => void;
+  onDragStart: (event: DragStartEvent) => void;
+  onDragOver: (event: DragOverEvent) => void;
+  onDragEnd: (event: DragEndEvent) => void;
   onTaskClick: (task: Task) => void;
+  onTaskDelete: (taskId: string) => void;
   onAddTask: (statusId: string) => void;
-  onEditStatus?: (status: any) => void | undefined;
-  onDeleteStatus?: (statusId: string) => void | undefined;
+  onEditStatus?: (status: Status) => void;
+  onDeleteStatus?: (statusId: string) => void;
 }
 
 export function BoardColumns({
@@ -29,6 +38,7 @@ export function BoardColumns({
   onDragOver,
   onDragEnd,
   onTaskClick,
+  onTaskDelete,
   onAddTask,
   onEditStatus,
   onDeleteStatus,
@@ -49,19 +59,17 @@ export function BoardColumns({
               status={status}
               tasks={status.tasks}
               onTaskClick={onTaskClick}
+              onTaskDelete={onTaskDelete}
               onAddTask={() => onAddTask(status.id)}
-              onEditStatus={onEditStatus}
-              onDeleteStatus={onDeleteStatus}
-              canEdit={canEdit}
+              onEditStatus={() => onEditStatus?.(status)}
+              onDeleteStatus={() => onDeleteStatus?.(status.id)}
             />
           ))}
 
           {board.statuses.length === 0 && (
             <div className="flex h-96 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
               <div className="text-center">
-                <p className="text-gray-500 dark:text-gray-400">
-                  No statuses yet
-                </p>
+                <p className="text-gray-500 dark:text-gray-400">No statuses yet</p>
                 {canEdit && (
                   <p className="mt-2 text-sm text-gray-400">
                     Click &quot;Add Status&quot; to create your first column
@@ -73,9 +81,7 @@ export function BoardColumns({
         </div>
 
         {/* Drag overlay for better UX */}
-        <DragOverlay>
-          {activeTask && <BoardTaskCard task={activeTask} isDragging />}
-        </DragOverlay>
+        <DragOverlay>{activeTask && <BoardTaskCard task={activeTask} isDragOverlay />}</DragOverlay>
       </DndContext>
     </div>
   );

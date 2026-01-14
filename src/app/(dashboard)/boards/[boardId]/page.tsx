@@ -180,6 +180,32 @@ export default function BoardPage() {
   };
 
   /**
+   * Status operations
+   */
+  const handleCreateOrUpdateStatus = async (data: { name: string; color: string }) => {
+    try {
+      const url = state.editingStatus
+        ? `/api/boards/${boardId}/statuses/${state.editingStatus.id}`
+        : `/api/boards/${boardId}/statuses`;
+      const method = state.editingStatus ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to save status');
+
+      await fetchBoard(); // Refetch board to get updated statuses
+      actions.closeStatusModal();
+      toast.success(`Status ${state.editingStatus ? 'updated' : 'created'}`);
+    } catch {
+      toast.error('Failed to save status');
+    }
+  };
+
+  /**
    * Permissions
    */
   const canEdit = ['owner', 'admin', 'member'].includes(state.currentUserRole);
@@ -227,6 +253,7 @@ export default function BoardPage() {
         onDragOver={dragAndDrop.handleDragOver}
         onDragEnd={dragAndDrop.handleDragEnd}
         onTaskClick={actions.openDrawer}
+        onTaskDelete={handleDeleteTask}
         onAddTask={actions.openTaskModal}
         onEditStatus={actions.openStatusModal}
         onDeleteStatus={(_statusId) => {
@@ -235,38 +262,37 @@ export default function BoardPage() {
       />
 
       {/* Modals */}
-      {state.isTaskModalOpen && (
-        <CreateTaskModal
-          boardId={boardId}
-          statuses={state.board.statuses}
-          defaultStatusId={state.defaultStatusId}
-          onClose={actions.closeTaskModal}
-          onSubmit={handleCreateTask}
-        />
-      )}
+      <CreateTaskModal
+        isOpen={state.isTaskModalOpen}
+        statuses={state.board.statuses}
+        defaultStatusId={state.defaultStatusId}
+        onClose={actions.closeTaskModal}
+        onSubmit={handleCreateTask}
+      />
 
-      {state.isDrawerOpen && state.selectedTask && (
-        <TaskDrawer
-          task={state.selectedTask}
-          boardId={boardId}
-          onClose={actions.closeDrawer}
-          onUpdate={handleUpdateTask}
-          onDelete={handleDeleteTask}
-          canEdit={canEdit}
-        />
-      )}
+      <TaskDrawer
+        task={state.selectedTask}
+        isOpen={state.isDrawerOpen}
+        boardId={boardId}
+        statuses={state.board.statuses}
+        onClose={actions.closeDrawer}
+        onUpdate={handleUpdateTask}
+        onDelete={handleDeleteTask}
+      />
 
-      {state.isStatusModalOpen && (
-        <StatusModal
-          boardId={boardId}
-          status={state.editingStatus}
-          onClose={actions.closeStatusModal}
-        />
-      )}
+      <StatusModal
+        isOpen={state.isStatusModalOpen}
+        status={state.editingStatus}
+        onClose={actions.closeStatusModal}
+        onSubmit={handleCreateOrUpdateStatus}
+      />
 
-      {state.isMembersModalOpen && (
-        <BoardMembersModal boardId={boardId} onClose={actions.closeMembersModal} />
-      )}
+      <BoardMembersModal
+        isOpen={state.isMembersModalOpen}
+        boardId={boardId}
+        currentUserRole={state.currentUserRole}
+        onClose={actions.closeMembersModal}
+      />
     </div>
   );
 }

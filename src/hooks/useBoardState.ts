@@ -29,7 +29,7 @@ export interface BoardState {
 
 // Action types
 export type BoardAction =
-  | { type: 'SET_BOARD'; payload: BoardWithData }
+  | { type: 'SET_BOARD'; payload: BoardWithData | null }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: Error | null }
   | { type: 'SET_SELECTED_TASK'; payload: Task | null }
@@ -67,7 +67,12 @@ const initialState: BoardState = {
 function boardReducer(state: BoardState, action: BoardAction): BoardState {
   switch (action.type) {
     case 'SET_BOARD':
-      return { ...state, board: action.payload, loading: false, error: null };
+      return {
+        ...state,
+        board: action.payload,
+        loading: action.payload === null ? state.loading : false,
+        error: action.payload === null ? state.error : null,
+      };
 
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
@@ -150,8 +155,7 @@ function boardReducer(state: BoardState, action: BoardAction): BoardState {
             tasks: status.tasks.filter((task) => task.id !== taskId),
           })),
         },
-        selectedTask:
-          state.selectedTask?.id === taskId ? null : state.selectedTask,
+        selectedTask: state.selectedTask?.id === taskId ? null : state.selectedTask,
       };
     }
 
@@ -250,9 +254,24 @@ export function useBoardState() {
 
   // Action creators
   const actions = {
-    setBoard: useCallback((board: BoardWithData) => {
-      dispatch({ type: 'SET_BOARD', payload: board });
-    }, []),
+    setBoard: useCallback(
+      (
+        boardOrUpdater:
+          | BoardWithData
+          | null
+          | ((prev: BoardWithData | null) => BoardWithData | null)
+      ) => {
+        if (typeof boardOrUpdater === 'function') {
+          // Handle functional update
+          const newBoard = boardOrUpdater(state.board);
+          dispatch({ type: 'SET_BOARD', payload: newBoard });
+        } else {
+          // Handle direct value
+          dispatch({ type: 'SET_BOARD', payload: boardOrUpdater });
+        }
+      },
+      [state.board]
+    ),
 
     setLoading: useCallback((loading: boolean) => {
       dispatch({ type: 'SET_LOADING', payload: loading });
@@ -262,12 +281,9 @@ export function useBoardState() {
       dispatch({ type: 'SET_ERROR', payload: error });
     }, []),
 
-    setUserRole: useCallback(
-      (role: 'owner' | 'admin' | 'member' | 'viewer') => {
-        dispatch({ type: 'SET_USER_ROLE', payload: role });
-      },
-      []
-    ),
+    setUserRole: useCallback((role: 'owner' | 'admin' | 'member' | 'viewer') => {
+      dispatch({ type: 'SET_USER_ROLE', payload: role });
+    }, []),
 
     // Task modal
     openTaskModal: useCallback((statusId?: string) => {
@@ -318,15 +334,12 @@ export function useBoardState() {
       dispatch({ type: 'ADD_TASK', payload: task });
     }, []),
 
-    moveTask: useCallback(
-      (taskId: string, newStatusId: string, newOrder: number) => {
-        dispatch({
-          type: 'MOVE_TASK',
-          payload: { taskId, newStatusId, newOrder },
-        });
-      },
-      []
-    ),
+    moveTask: useCallback((taskId: string, newStatusId: string, newOrder: number) => {
+      dispatch({
+        type: 'MOVE_TASK',
+        payload: { taskId, newStatusId, newOrder },
+      });
+    }, []),
 
     reorderTasks: useCallback((statusId: string, tasks: Task[]) => {
       dispatch({ type: 'REORDER_TASKS', payload: { statusId, tasks } });
