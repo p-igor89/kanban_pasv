@@ -68,17 +68,21 @@ export async function PATCH(
       .from('board_members')
       .update({ role })
       .eq('id', memberId)
-      .select(
-        `
-        *,
-        profile:profiles(id, email, display_name, avatar_url)
-      `
-      )
+      .select('*')
       .single();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Fetch profile separately
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, email, display_name, avatar_url')
+      .eq('id', member.user_id)
+      .single();
+
+    const memberWithProfile = { ...member, profile };
 
     // Create notification
     await supabase.from('notifications').insert({
@@ -101,7 +105,7 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ member });
+    return NextResponse.json({ member: memberWithProfile });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

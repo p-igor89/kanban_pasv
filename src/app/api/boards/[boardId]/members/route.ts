@@ -28,12 +28,7 @@ export async function GET(
     // Get members
     const { data: members, error } = await supabase
       .from('board_members')
-      .select(
-        `
-        *,
-        profile:profiles(id, email, display_name, avatar_url)
-      `
-      )
+      .select('*')
       .eq('board_id', boardId)
       .order('created_at', { ascending: true });
 
@@ -41,8 +36,22 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Fetch profiles separately to avoid relationship issues
+    const memberUserIds = (members || []).map((m) => m.user_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, email, display_name, avatar_url')
+      .in('id', memberUserIds);
+
+    // Map profiles to members
+    const membersWithProfiles = (members || []).map((member) => ({
+      ...member,
+      profile: profiles?.find((p) => p.id === member.user_id) || null,
+    }));
+
     // Add owner as first member if not already in members
-    let allMembers = members || [];
+    type MemberWithProfile = (typeof membersWithProfiles)[number];
+    let allMembers: MemberWithProfile[] = membersWithProfiles;
     if (board && !allMembers.some((m) => m.user_id === board.user_id)) {
       const { data: ownerProfile } = await supabase
         .from('profiles')
@@ -61,7 +70,7 @@ export async function GET(
           created_at: '',
           profile: ownerProfile,
         };
-        allMembers = [ownerEntry as unknown as (typeof allMembers)[number], ...allMembers];
+        allMembers = [ownerEntry as MemberWithProfile, ...allMembers];
       }
     }
 
@@ -159,19 +168,25 @@ export async function POST(
         user_id: inviteeProfile.id,
         role,
         invited_by: user.id,
-        invited_at: new Date().toISOString(),
       })
-      .select(
-        `
-        *,
-        profile:profiles(id, email, display_name, avatar_url)
-      `
-      )
+      .select('*')
       .single();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Fetch profile for the new member
+    const { data: memberProfile } = await supabase
+      .from('profiles')
+      .select('id, email, display_name, avatar_url')
+      .eq('id', inviteeProfile.id)
+      .single();
+
+    const memberWithProfile = {
+      ...member,
+      profile: memberProfile,
+    };
 
     // Create notification for invitee
     await supabase.from('notifications').insert({
@@ -190,7 +205,7 @@ export async function POST(
       details: { invited_user_id: inviteeProfile.id, role },
     });
 
-    return NextResponse.json({ member }, { status: 201 });
+    return NextResponse.json({ member: memberWithProfile }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

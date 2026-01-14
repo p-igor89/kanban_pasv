@@ -20,12 +20,7 @@ export async function GET(
 
     const { data: comments, error } = await supabase
       .from('comments')
-      .select(
-        `
-        *,
-        profile:profiles(id, email, display_name, avatar_url)
-      `
-      )
+      .select('*')
       .eq('task_id', taskId)
       .order('created_at', { ascending: true });
 
@@ -33,7 +28,19 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ comments });
+    // Fetch profiles separately
+    const userIds = [...new Set((comments || []).map((c) => c.user_id))];
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, email, display_name, avatar_url')
+      .in('id', userIds);
+
+    const commentsWithProfiles = (comments || []).map((comment) => ({
+      ...comment,
+      profile: profiles?.find((p) => p.id === comment.user_id) || null,
+    }));
+
+    return NextResponse.json({ comments: commentsWithProfiles });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -71,17 +78,21 @@ export async function POST(
         user_id: user.id,
         content: content.trim(),
       })
-      .select(
-        `
-        *,
-        profile:profiles(id, email, display_name, avatar_url)
-      `
-      )
+      .select('*')
       .single();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Fetch profile for the comment author
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, email, display_name, avatar_url')
+      .eq('id', user.id)
+      .single();
+
+    const commentWithProfile = { ...comment, profile };
 
     // Log activity
     await supabase.from('activities').insert({
@@ -92,7 +103,7 @@ export async function POST(
       details: { comment_id: comment.id },
     });
 
-    return NextResponse.json({ comment }, { status: 201 });
+    return NextResponse.json({ comment: commentWithProfile }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
