@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2, UserPlus, Crown, Shield, Eye, User, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface Profile {
   id: string;
@@ -59,6 +60,8 @@ export default function BoardMembersModal({
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'admin' | 'member' | 'viewer'>('member');
   const [inviting, setInviting] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; email: string } | null>(null);
 
   const canManageMembers = currentUserRole === 'owner' || currentUserRole === 'admin';
 
@@ -139,11 +142,16 @@ export default function BoardMembersModal({
     }
   };
 
-  const handleRemoveMember = async (memberId: string, memberEmail: string) => {
-    if (!confirm(`Remove ${memberEmail} from this board?`)) return;
+  const handleRemoveClick = (memberId: string, memberEmail: string) => {
+    setRemoveTarget({ id: memberId, email: memberEmail });
+  };
 
+  const handleRemoveConfirm = async () => {
+    if (!removeTarget) return;
+
+    setRemoving(true);
     try {
-      const response = await fetch(`/api/boards/${boardId}/members/${memberId}`, {
+      const response = await fetch(`/api/boards/${boardId}/members/${removeTarget.id}`, {
         method: 'DELETE',
       });
 
@@ -152,11 +160,14 @@ export default function BoardMembersModal({
         throw new Error(data.error || 'Failed to remove member');
       }
 
-      setMembers((prev) => prev.filter((m) => m.id !== memberId));
+      setMembers((prev) => prev.filter((m) => m.id !== removeTarget.id));
       toast.success('Member removed');
+      setRemoveTarget(null);
     } catch (error) {
       console.error('Error removing member:', error);
       toast.error('Failed to remove member');
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -287,7 +298,7 @@ export default function BoardMembersModal({
 
                       {canEdit && (
                         <button
-                          onClick={() => handleRemoveMember(member.id, member.profile.email)}
+                          onClick={() => handleRemoveClick(member.id, member.profile.email)}
                           className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                           title="Remove member"
                         >
@@ -301,6 +312,18 @@ export default function BoardMembersModal({
             </div>
           )}
         </div>
+
+        <ConfirmDialog
+          isOpen={!!removeTarget}
+          onClose={() => setRemoveTarget(null)}
+          onConfirm={handleRemoveConfirm}
+          title="Remove Member"
+          message={`Are you sure you want to remove ${removeTarget?.email} from this board? They will lose access immediately.`}
+          confirmText="Remove"
+          icon="remove-user"
+          variant="danger"
+          loading={removing}
+        />
       </div>
     </div>
   );

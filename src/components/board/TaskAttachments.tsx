@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Paperclip, Upload, Loader2, Trash2, Download, File, Image, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface Attachment {
   id: string;
@@ -27,6 +28,8 @@ export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProp
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; filename: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -90,12 +93,17 @@ export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProp
     }
   };
 
-  const handleDelete = async (attachmentId: string, filename: string) => {
-    if (!confirm(`Delete "${filename}"?`)) return;
+  const handleDeleteClick = (attachmentId: string, filename: string) => {
+    setDeleteTarget({ id: attachmentId, filename });
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
     try {
       const response = await fetch(
-        `/api/boards/${boardId}/tasks/${taskId}/attachments?attachmentId=${attachmentId}`,
+        `/api/boards/${boardId}/tasks/${taskId}/attachments?attachmentId=${deleteTarget.id}`,
         {
           method: 'DELETE',
         }
@@ -106,11 +114,14 @@ export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProp
         throw new Error(data.error || 'Failed to delete attachment');
       }
 
-      setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
+      setAttachments((prev) => prev.filter((a) => a.id !== deleteTarget.id));
       toast.success('File deleted');
+      setDeleteTarget(null);
     } catch (error) {
       console.error('Error deleting attachment:', error);
       toast.error('Failed to delete file');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -204,7 +215,7 @@ export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProp
                     </a>
                   )}
                   <button
-                    onClick={() => handleDelete(attachment.id, attachment.filename)}
+                    onClick={() => handleDeleteClick(attachment.id, attachment.filename)}
                     className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                     title="Delete"
                   >
@@ -216,6 +227,18 @@ export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProp
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete File"
+        message={`Are you sure you want to delete "${deleteTarget?.filename}"? This action cannot be undone.`}
+        confirmText="Delete"
+        icon="delete-file"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }

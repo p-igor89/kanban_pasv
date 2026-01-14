@@ -5,6 +5,7 @@ import { X, Trash2, Calendar, Tag, User, Flag, MessageSquare } from 'lucide-reac
 import { Task, Status } from '@/types/board';
 import TaskComments from './TaskComments';
 import TaskAttachments from './TaskAttachments';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface TaskDrawerProps {
   task: Task | null;
@@ -43,6 +44,7 @@ export default function TaskDrawer({
   const [assigneeName, setAssigneeName] = useState('');
   const [assigneeColor, setAssigneeColor] = useState('#6366f1');
   const [saving, setSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -94,9 +96,14 @@ export default function TaskDrawer({
     setTags(tags.filter((t) => t !== tagToRemove));
   };
 
-  const handleDelete = () => {
-    if (task && confirm('Are you sure you want to delete this task?')) {
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (task) {
       onDelete(task.id);
+      setShowDeleteConfirm(false);
       onClose();
     }
   };
@@ -113,7 +120,7 @@ export default function TaskDrawer({
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Task Details</h2>
           <div className="flex items-center gap-2">
             <button
-              onClick={handleDelete}
+              onClick={handleDeleteClick}
               className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
               title="Delete task"
             >
@@ -297,6 +304,17 @@ export default function TaskDrawer({
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Task"
+        message={`Are you sure you want to delete "${task?.title}"? This will also delete all comments and attachments.`}
+        confirmText="Delete Task"
+        icon="delete"
+        variant="danger"
+      />
     </>
   );
 }

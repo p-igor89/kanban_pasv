@@ -16,6 +16,7 @@ import {
   Check,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface Board {
   id: string;
@@ -69,6 +70,8 @@ export default function BoardsPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const fetchBoards = async () => {
     try {
@@ -161,13 +164,16 @@ export default function BoardsPage() {
     }
   };
 
-  const handleDeleteBoard = async (boardId: string, boardName: string) => {
-    if (!confirm(`Are you sure you want to delete "${boardName}"? This action cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteClick = (boardId: string, boardName: string) => {
+    setDeleteTarget({ id: boardId, name: boardName });
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
     try {
-      const response = await fetch(`/api/boards/${boardId}`, {
+      const response = await fetch(`/api/boards/${deleteTarget.id}`, {
         method: 'DELETE',
       });
 
@@ -176,11 +182,14 @@ export default function BoardsPage() {
         throw new Error(data.error || 'Failed to delete board');
       }
 
-      setBoards((prev) => prev.filter((b) => b.id !== boardId));
+      setBoards((prev) => prev.filter((b) => b.id !== deleteTarget.id));
       toast.success('Board deleted');
+      setDeleteTarget(null);
     } catch (error) {
       console.error('Error deleting board:', error);
       toast.error('Failed to delete board');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -283,7 +292,7 @@ export default function BoardsPage() {
 
                   {board.role === 'owner' && (
                     <button
-                      onClick={() => handleDeleteBoard(board.id, board.name)}
+                      onClick={() => handleDeleteClick(board.id, board.name)}
                       className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors"
                       title="Delete board"
                     >
@@ -446,6 +455,18 @@ export default function BoardsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Board"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? All tasks, comments, and attachments will be permanently deleted.`}
+        confirmText="Delete Board"
+        icon="delete"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }

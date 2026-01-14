@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Send, Loader2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 interface Profile {
   id: string;
@@ -31,6 +32,8 @@ export default function TaskComments({ boardId, taskId }: TaskCommentsProps) {
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState('');
   const [sending, setSending] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchComments();
@@ -83,12 +86,17 @@ export default function TaskComments({ boardId, taskId }: TaskCommentsProps) {
     }
   };
 
-  const handleDelete = async (commentId: string) => {
-    if (!confirm('Delete this comment?')) return;
+  const handleDeleteClick = (commentId: string) => {
+    setDeleteCommentId(commentId);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteCommentId) return;
+
+    setDeleting(true);
     try {
       const response = await fetch(
-        `/api/boards/${boardId}/tasks/${taskId}/comments?commentId=${commentId}`,
+        `/api/boards/${boardId}/tasks/${taskId}/comments?commentId=${deleteCommentId}`,
         {
           method: 'DELETE',
         }
@@ -99,11 +107,14 @@ export default function TaskComments({ boardId, taskId }: TaskCommentsProps) {
         throw new Error(data.error || 'Failed to delete comment');
       }
 
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      setComments((prev) => prev.filter((c) => c.id !== deleteCommentId));
       toast.success('Comment deleted');
+      setDeleteCommentId(null);
     } catch (error) {
       console.error('Error deleting comment:', error);
       toast.error('Failed to delete comment');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -184,7 +195,7 @@ export default function TaskComments({ boardId, taskId }: TaskCommentsProps) {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleDelete(comment.id)}
+                  onClick={() => handleDeleteClick(comment.id)}
                   className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                   title="Delete comment"
                 >
@@ -198,6 +209,18 @@ export default function TaskComments({ boardId, taskId }: TaskCommentsProps) {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteCommentId}
+        onClose={() => setDeleteCommentId(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Comment"
+        message="Are you sure you want to delete this comment? This action cannot be undone."
+        confirmText="Delete"
+        icon="delete"
+        variant="danger"
+        loading={deleting}
+      />
     </div>
   );
 }
