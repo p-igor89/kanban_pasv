@@ -431,6 +431,6 @@ open http://localhost:3000
 
 **Built with ❤️ using Next.js + Supabase**
 
-[Live Demo](https://kanbanpro.vercel.app) · [Documentation](./DEPLOYMENT.md) · [Report Bug](https://github.com/issues)
+[Live Demo](https://kanban-pasv-sigma.vercel.app) · [Documentation](./DEPLOYMENT.md)
 
 </div>

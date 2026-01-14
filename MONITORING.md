@@ -559,7 +559,8 @@ jobs:
           npm install -g @lhci/cli
           lhci autorun
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Upload results
         uses: actions/upload-artifact@v4
