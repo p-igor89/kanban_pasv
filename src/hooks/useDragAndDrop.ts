@@ -22,11 +22,7 @@ interface UseDragAndDropOptions {
   onMove: (taskId: string, newStatusId: string, newOrder: number) => void;
 }
 
-export function useDragAndDrop({
-  board,
-  onReorder,
-  onMove,
-}: UseDragAndDropOptions) {
+export function useDragAndDrop({ board, onReorder, onMove }: UseDragAndDropOptions) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   // Configure sensors for drag detection
@@ -64,7 +60,7 @@ export function useDragAndDrop({
    */
   const handleDragOver = useCallback(
     (event: DragOverEvent) => {
-      const { active, over } = event;
+      const { over } = event;
       if (!over || !board) return;
 
       // Can add visual feedback here if needed
@@ -93,9 +89,7 @@ export function useDragAndDrop({
       const isOverColumn = board.statuses.some((s) => s.id === overId);
       const overTask = allTasks.find((t) => t.id === overId);
 
-      const targetStatusId = isOverColumn
-        ? overId
-        : overTask?.status_id || activeTask.status_id;
+      const targetStatusId = isOverColumn ? overId : overTask?.status_id || activeTask.status_id;
 
       const targetStatus = board.statuses.find((s) => s.id === targetStatusId);
       if (!targetStatus) return;
@@ -108,11 +102,7 @@ export function useDragAndDrop({
           : targetStatus.tasks.findIndex((t) => t.id === overId);
 
         if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-          const reorderedTasks = arrayMove(
-            targetStatus.tasks,
-            oldIndex,
-            newIndex
-          );
+          const reorderedTasks = arrayMove(targetStatus.tasks, oldIndex, newIndex);
 
           // Update order property
           const tasksWithNewOrder = reorderedTasks.map((task, idx) => ({

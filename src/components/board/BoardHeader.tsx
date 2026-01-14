@@ -30,13 +30,9 @@ export function BoardHeader({
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {board.name}
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{board.name}</h1>
           {board.description && (
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {board.description}
-            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{board.description}</p>
           )}
         </div>
       </div>

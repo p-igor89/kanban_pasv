@@ -166,9 +166,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             aria-activedescendant={activeIndex >= 0 ? getOptionId(activeIndex) : undefined}
             className="flex-1 bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-400 text-lg"
           />
-          {loading && (
-            <Loader2 className="h-5 w-5 animate-spin text-gray-400" aria-hidden="true" />
-          )}
+          {loading && <Loader2 className="h-5 w-5 animate-spin text-gray-400" aria-hidden="true" />}
           <button
             onClick={onClose}
             aria-label="Close search"
@@ -199,12 +197,7 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
               <p>No results found for &ldquo;{query}&rdquo;</p>
             </div>
           ) : (
-            <div
-              id={listboxId}
-              role="listbox"
-              aria-label="Search results"
-              className="py-2"
-            >
+            <div id={listboxId} role="listbox" aria-label="Search results" className="py-2">
               {results.map((result, index) => (
                 <div
                   key={result.id}
@@ -220,7 +213,10 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <FileText className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
+                    <FileText
+                      className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0"
+                      aria-hidden="true"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 dark:text-white truncate">
                         {result.title}

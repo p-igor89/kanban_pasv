@@ -86,11 +86,7 @@ export function groupTasksByStatus(tasks: Task[]): Record<string, Task[]> {
   );
 }
 
-export function getTasksByDateRange(
-  tasks: Task[],
-  startDate: Date,
-  endDate: Date
-): Task[] {
+export function getTasksByDateRange(tasks: Task[], startDate: Date, endDate: Date): Task[] {
   return tasks.filter((task) => {
     if (!task.due_date) return false;
 

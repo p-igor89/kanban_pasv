@@ -3,11 +3,13 @@
 ## ✅ What's Done
 
 ### 1. **Dependencies Installed**
+
 ```bash
 npm install @tanstack/react-query @tanstack/react-query-devtools
 ```
 
 ### 2. **Configuration**
+
 - **`src/lib/react-query/queryClient.ts`** - QueryClient with optimized settings
   - 5min stale time
   - 10min garbage collection
@@ -19,11 +21,13 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
   - Hierarchical key structure for easy cache invalidation
 
 ### 3. **Provider Setup**
+
 - **`src/providers/QueryProvider.tsx`** - React Query provider with DevTools
 - **`src/app/layout.tsx`** - Updated to wrap app in QueryProvider
 - DevTools enabled in development mode (bottom-right corner)
 
 ### 4. **Custom Hooks Created**
+
 - **`src/hooks/api/useBoards.ts`**
   - `useBoards()` - Fetch all boards
   - `useBoard(boardId)` - Fetch single board with statuses & tasks
@@ -40,6 +44,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
   - `useReorderTasks()` - Batch reorder tasks (for drag & drop)
 
 ### 5. **Example Migration**
+
 - **`src/app/(dashboard)/boards/[boardId]/page-with-react-query.tsx`**
   - Simplified Board component using React Query
   - No manual `useState` for data
@@ -50,6 +55,7 @@ npm install @tanstack/react-query @tanstack/react-query-devtools
 ## 📊 Benefits
 
 ### Before React Query:
+
 ```typescript
 const [board, setBoard] = useState(null);
 const [loading, setLoading] = useState(true);
@@ -73,6 +79,7 @@ useEffect(() => {
 ```
 
 ### After React Query:
+
 ```typescript
 const { data: board, isLoading, error } = useBoard(boardId);
 
@@ -84,6 +91,7 @@ const { data: board, isLoading, error } = useBoard(boardId);
 ```
 
 ### Performance Improvements:
+
 - **60-70% fewer API calls** - automatic caching
 - **Instant UI updates** - optimistic updates
 - **Background refetching** - data always fresh
@@ -92,6 +100,7 @@ const { data: board, isLoading, error } = useBoard(boardId);
 ## 🚀 How to Use
 
 ### 1. Querying Data
+
 ```typescript
 import { useBoard, useTasks } from '@/hooks/api';
 
@@ -107,6 +116,7 @@ function MyComponent() {
 ```
 
 ### 2. Mutations (Create/Update/Delete)
+
 ```typescript
 import { useCreateTask, useUpdateTask } from '@/hooks/api';
 
@@ -129,6 +139,7 @@ function TaskForm() {
 ```
 
 ### 3. Optimistic Updates (Already Implemented)
+
 ```typescript
 // useUpdateTask has built-in optimistic updates
 const updateTask = useUpdateTask(taskId);
@@ -138,6 +149,7 @@ updateTask.mutate({ title: 'New Title' });
 ```
 
 ### 4. Manual Cache Invalidation
+
 ```typescript
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query/queryKeys';
@@ -154,13 +166,16 @@ function MyComponent() {
 ## 🔄 Migration Steps
 
 ### Option A: Complete Migration (Recommended)
+
 1. **Backup current file:**
+
    ```bash
    cp src/app/(dashboard)/boards/[boardId]/page.tsx \
       src/app/(dashboard)/boards/[boardId]/page.backup.tsx
    ```
 
 2. **Replace with React Query version:**
+
    ```bash
    cp src/app/(dashboard)/boards/[boardId]/page-with-react-query.tsx \
       src/app/(dashboard)/boards/[boardId]/page.tsx
@@ -173,6 +188,7 @@ function MyComponent() {
    - Multiple tabs (cache sharing)
 
 ### Option B: Incremental Migration
+
 1. Keep current page as is
 2. Use React Query hooks in new features
 3. Gradually migrate existing components
@@ -180,6 +196,7 @@ function MyComponent() {
 ## 🐛 Debugging
 
 ### React Query DevTools
+
 - Enabled in development mode
 - Bottom-right corner floating button
 - Shows all queries, mutations, cache state

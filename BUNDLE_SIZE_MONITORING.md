@@ -16,6 +16,7 @@ Bundle size monitoring is now integrated into the CI/CD pipeline with automatic 
 ### GitHub Action (.github/workflows/bundle-size.yml)
 
 The workflow runs automatically on every PR that modifies:
+
 - `src/**` - Source code
 - `public/**` - Public assets
 - `package.json` - Dependencies
@@ -34,34 +35,36 @@ The workflow runs automatically on every PR that modifies:
 
 ### Size Thresholds
 
-| Status | Change | Action |
-|--------|--------|--------|
-| 🎉 **Reduced** | < -50KB | Celebrate! Great optimization |
-| ✅ **Good** | ±50KB | No action needed |
-| ⚡ **Caution** | +50-100KB | Review changes |
-| ⚠️ **Warning** | > +100KB | Optimize before merge |
+| Status         | Change    | Action                        |
+| -------------- | --------- | ----------------------------- |
+| 🎉 **Reduced** | < -50KB   | Celebrate! Great optimization |
+| ✅ **Good**    | ±50KB     | No action needed              |
+| ⚡ **Caution** | +50-100KB | Review changes                |
+| ⚠️ **Warning** | > +100KB  | Optimize before merge         |
 
 ## 📝 PR Comment Example
 
 ```markdown
 ## ✅ Bundle Size Report
 
-| Branch | Total Size | Chunks |
-|--------|-----------|--------|
-| **PR** | 1,234.56 KB | 45 |
-| **main** | 1,189.23 KB | 43 |
-| **Diff** | 🟡 +45.33 KB (+3.81%) | +2 |
+| Branch   | Total Size            | Chunks |
+| -------- | --------------------- | ------ |
+| **PR**   | 1,234.56 KB           | 45     |
+| **main** | 1,189.23 KB           | 43     |
+| **Diff** | 🟡 +45.33 KB (+3.81%) | +2     |
 
 ### Status: ⚡ Caution
 
 ⚡ **Caution**: Bundle size increased by more than 50KB.
 
 ### Guidelines
+
 - ✅ **Good**: Change < ±50KB
 - ⚡ **Caution**: Change between 50-100KB
 - ⚠️ **Warning**: Change > 100KB
 
 💡 Tips to reduce bundle size
+
 - Use dynamic imports for large components
 - Check for duplicate dependencies
 - Enable tree shaking
@@ -79,6 +82,7 @@ npm run build:analyze
 ```
 
 This will:
+
 - Build the project
 - Generate bundle analysis
 - Open interactive visualization in browser
@@ -116,6 +120,7 @@ source-map-explorer '.next/static/chunks/*.js'
 ### 1. Dynamic Imports
 
 **Before:**
+
 ```typescript
 import HeavyComponent from './HeavyComponent';
 
@@ -125,6 +130,7 @@ function MyPage() {
 ```
 
 **After:**
+
 ```typescript
 import dynamic from 'next/dynamic';
 
@@ -145,12 +151,14 @@ function MyPage() {
 Ensure imports are tree-shakeable:
 
 **Before:**
+
 ```typescript
 import * as icons from 'lucide-react';
 <icons.Plus />
 ```
 
 **After:**
+
 ```typescript
 import { Plus } from 'lucide-react';
 <Plus />
@@ -214,11 +222,11 @@ npm uninstall unused-package
 
 ## 🎯 Target Sizes
 
-| Metric | Target | Current | Status |
-|--------|--------|---------|--------|
-| First Load JS | < 250KB | ~220KB | ✅ |
-| Total Static | < 2MB | ~1.8MB | ✅ |
-| Largest Chunk | < 100KB | ~85KB | ✅ |
+| Metric        | Target  | Current | Status |
+| ------------- | ------- | ------- | ------ |
+| First Load JS | < 250KB | ~220KB  | ✅     |
+| Total Static  | < 2MB   | ~1.8MB  | ✅     |
+| Largest Chunk | < 100KB | ~85KB   | ✅     |
 
 ## 📋 Checklist for Large PRs
 
@@ -237,6 +245,7 @@ Before merging a PR that increases bundle size:
 ### Issue: Bundle size check fails in CI
 
 **Solution:**
+
 1. Check GitHub Actions logs
 2. Ensure build succeeds locally
 3. Verify no missing dependencies
@@ -244,6 +253,7 @@ Before merging a PR that increases bundle size:
 ### Issue: False positives (size didn't actually change)
 
 **Solution:**
+
 - Rebase PR on latest main
 - Clear cache and rebuild
 - Check for non-deterministic builds
@@ -251,6 +261,7 @@ Before merging a PR that increases bundle size:
 ### Issue: Can't reduce bundle size further
 
 **Solutions:**
+
 1. Split large components
 2. Move heavy dependencies to optional imports
 3. Use smaller alternatives (e.g., date-fns-tz instead of moment-timezone)

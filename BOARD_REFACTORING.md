@@ -38,6 +38,7 @@ src/
 ### 1. State Management: Multiple useState → useReducer
 
 **Before:**
+
 ```typescript
 const [board, setBoard] = useState<BoardWithData | null>(null);
 const [loading, setLoading] = useState(true);
@@ -51,6 +52,7 @@ const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
 ```
 
 **After:**
+
 ```typescript
 const { state, actions } = useBoardState();
 
@@ -60,6 +62,7 @@ const { state, actions } = useBoardState();
 ```
 
 **Benefits:**
+
 - ✅ Single source of truth
 - ✅ Predictable state updates
 - ✅ Easier to debug (Redux DevTools compatible)
@@ -86,6 +89,7 @@ const dragAndDrop = useDragAndDrop({
 ```
 
 **Benefits:**
+
 - ✅ Reusable across components
 - ✅ Testable in isolation
 - ✅ Cleaner component code
@@ -112,6 +116,7 @@ const dragAndDrop = useDragAndDrop({
 ```
 
 **Benefits:**
+
 - ✅ Better code organization
 - ✅ Reusable components
 - ✅ Easier to read and modify
@@ -123,12 +128,14 @@ const dragAndDrop = useDragAndDrop({
 **File:** `src/hooks/useBoardState.ts` (280 lines)
 
 **Features:**
+
 - Centralized state management with useReducer
 - 18 action types for all state changes
 - Type-safe actions with TypeScript
 - Memoized action creators
 
 **State Shape:**
+
 ```typescript
 {
   board: BoardWithData | null;
@@ -146,6 +153,7 @@ const dragAndDrop = useDragAndDrop({
 ```
 
 **Actions:**
+
 ```typescript
 // Board
 actions.setBoard(board)
@@ -176,17 +184,19 @@ actions.reorderTasks(statusId, tasks)
 **File:** `src/hooks/useDragAndDrop.ts` (120 lines)
 
 **Features:**
+
 - Configured sensors (pointer & touch)
 - All drag event handlers
 - Automatic reorder/move logic
 - Performance optimized
 
 **API:**
+
 ```typescript
 const {
-  sensors,        // DnD sensors configuration
-  activeTask,     // Currently dragged task
-  allTasks,       // Flat task array
+  sensors, // DnD sensors configuration
+  activeTask, // Currently dragged task
+  allTasks, // Flat task array
   handleDragStart,
   handleDragOver,
   handleDragEnd,
@@ -198,6 +208,7 @@ const {
 **File:** `src/components/board/BoardHeader.tsx` (60 lines)
 
 **Props:**
+
 ```typescript
 {
   board: BoardWithData;
@@ -209,6 +220,7 @@ const {
 ```
 
 **Features:**
+
 - Back button
 - Board title and description
 - Members button
@@ -220,6 +232,7 @@ const {
 **File:** `src/components/board/BoardColumns.tsx` (80 lines)
 
 **Props:**
+
 ```typescript
 {
   board: BoardWithData;
@@ -237,6 +250,7 @@ const {
 ```
 
 **Features:**
+
 - DndContext wrapper
 - Column rendering
 - DragOverlay
@@ -245,17 +259,20 @@ const {
 ## 📈 Performance Improvements
 
 ### Before
+
 - ❌ Many useState calls = many potential re-renders
 - ❌ Inline functions recreated on every render
 - ❌ Complex component hard to optimize
 
 ### After
+
 - ✅ useReducer batches updates
 - ✅ Memoized action creators
 - ✅ Smaller components easier to memo()
 - ✅ Cleaner dependency arrays
 
 ### Measured Impact
+
 - **Component size:** 538 → ~250 lines (53% reduction)
 - **Re-renders:** Reduced by ~40% (need to measure with React DevTools)
 - **Maintainability:** Significantly improved
@@ -309,12 +326,15 @@ After migration, test:
 ## 🐛 Known Issues & Solutions
 
 ### Issue 1: Type errors with BoardTaskCard
+
 **Solution:** Update BoardTaskCard to accept `isDragging` prop
 
 ### Issue 2: Modals don't match new API
+
 **Solution:** Update modal components to match new props
 
 ### Issue 3: Realtime updates not working
+
 **Solution:** Ensure `useRealtimeBoardState` is properly integrated
 
 ## 📚 Additional Resources
@@ -326,6 +346,7 @@ After migration, test:
 ## 🎯 Next Steps
 
 After this refactoring:
+
 1. ✅ Add unit tests for `useBoardState`
 2. ✅ Add unit tests for `useDragAndDrop`
 3. ✅ Consider adding BoardContext if state needs to be shared deeper
@@ -337,6 +358,7 @@ After this refactoring:
 **Status:** ✅ Refactoring complete and ready to test
 
 **Files created:**
+
 - `src/hooks/useBoardState.ts`
 - `src/hooks/useDragAndDrop.ts`
 - `src/components/board/BoardHeader.tsx`

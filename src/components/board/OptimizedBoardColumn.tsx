@@ -31,15 +31,15 @@ const OptimizedBoardColumn = memo<OptimizedBoardColumnProps>(
     onEditStatus,
     onDeleteStatus,
     canEdit,
-    isDragging = false
+    isDragging = false,
   }) => {
     const { setNodeRef, isOver } = useDroppable({
       id: `column-${status.id}`,
-      data: { type: 'column', statusId: status.id }
+      data: { type: 'column', statusId: status.id },
     });
 
     // Memoize task IDs to prevent unnecessary recalculation
-    const taskIds = useMemo(() => tasks.map(task => task.id), [tasks]);
+    const taskIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
 
     // Memoize color classes to avoid repeated string operations
     const colorClasses = useMemo(() => {
@@ -47,7 +47,7 @@ const OptimizedBoardColumn = memo<OptimizedBoardColumnProps>(
         gray: 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700',
         blue: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
         yellow: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800',
-        green: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+        green: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
       };
       return colors[status.color as keyof typeof colors] || colors.gray;
     }, [status.color]);
@@ -57,7 +57,7 @@ const OptimizedBoardColumn = memo<OptimizedBoardColumnProps>(
         gray: 'text-gray-700 dark:text-gray-300',
         blue: 'text-blue-700 dark:text-blue-300',
         yellow: 'text-yellow-700 dark:text-yellow-300',
-        green: 'text-green-700 dark:text-green-300'
+        green: 'text-green-700 dark:text-green-300',
       };
       return colors[status.color as keyof typeof colors] || colors.gray;
     }, [status.color]);
@@ -127,9 +127,7 @@ const OptimizedBoardColumn = memo<OptimizedBoardColumnProps>(
         {/* Column Header */}
         <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-2 flex-1">
-            <h3 className={`font-semibold ${headerColorClasses}`}>
-              {status.name}
-            </h3>
+            <h3 className={`font-semibold ${headerColorClasses}`}>{status.name}</h3>
             <span className="text-sm text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
               {tasks.length}
             </span>
@@ -165,11 +163,7 @@ const OptimizedBoardColumn = memo<OptimizedBoardColumnProps>(
               </div>
             ) : (
               tasks.map((task) => (
-                <BoardTaskCard
-                  key={task.id}
-                  task={task}
-                  onClick={() => onTaskSelect(task)}
-                />
+                <BoardTaskCard key={task.id} task={task} onClick={() => onTaskSelect(task)} />
               ))
             )}
           </SortableContext>
@@ -179,10 +173,12 @@ const OptimizedBoardColumn = memo<OptimizedBoardColumnProps>(
         {tasks.length > 0 && (
           <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
             <div className="flex justify-between">
-              <span>{tasks.length} task{tasks.length !== 1 ? 's' : ''}</span>
-              {tasks.some(t => t.priority === 'critical') && (
+              <span>
+                {tasks.length} task{tasks.length !== 1 ? 's' : ''}
+              </span>
+              {tasks.some((t) => t.priority === 'critical') && (
                 <span className="text-red-500">
-                  {tasks.filter(t => t.priority === 'critical').length} critical
+                  {tasks.filter((t) => t.priority === 'critical').length} critical
                 </span>
               )}
             </div>

@@ -86,10 +86,7 @@ function resolveTheme(theme: Theme): ResolvedTheme {
   return theme;
 }
 
-export default function ThemeProvider({
-  children,
-  defaultTheme = 'system',
-}: ThemeProviderProps) {
+export default function ThemeProvider({ children, defaultTheme = 'system' }: ThemeProviderProps) {
   // Track hydration state to prevent SSR mismatch
   const [mounted, setMounted] = useState(false);
 

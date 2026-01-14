@@ -8,19 +8,16 @@ export const queryKeys = {
   boards: {
     all: ['boards'] as const,
     lists: () => [...queryKeys.boards.all, 'list'] as const,
-    list: (filters?: Record<string, unknown>) =>
-      [...queryKeys.boards.lists(), filters] as const,
+    list: (filters?: Record<string, unknown>) => [...queryKeys.boards.lists(), filters] as const,
     details: () => [...queryKeys.boards.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.boards.details(), id] as const,
-    members: (boardId: string) =>
-      [...queryKeys.boards.detail(boardId), 'members'] as const,
+    members: (boardId: string) => [...queryKeys.boards.detail(boardId), 'members'] as const,
   },
 
   // Statuses
   statuses: {
     all: ['statuses'] as const,
-    byBoard: (boardId: string) =>
-      [...queryKeys.statuses.all, 'board', boardId] as const,
+    byBoard: (boardId: string) => [...queryKeys.statuses.all, 'board', boardId] as const,
   },
 
   // Tasks
@@ -38,24 +35,20 @@ export const queryKeys = {
   // Comments
   comments: {
     all: ['comments'] as const,
-    byTask: (taskId: string) =>
-      [...queryKeys.comments.all, 'task', taskId] as const,
+    byTask: (taskId: string) => [...queryKeys.comments.all, 'task', taskId] as const,
   },
 
   // Attachments
   attachments: {
     all: ['attachments'] as const,
-    byTask: (taskId: string) =>
-      [...queryKeys.attachments.all, 'task', taskId] as const,
+    byTask: (taskId: string) => [...queryKeys.attachments.all, 'task', taskId] as const,
   },
 
   // Activities
   activities: {
     all: ['activities'] as const,
-    byBoard: (boardId: string) =>
-      [...queryKeys.activities.all, 'board', boardId] as const,
-    byTask: (taskId: string) =>
-      [...queryKeys.activities.all, 'task', taskId] as const,
+    byBoard: (boardId: string) => [...queryKeys.activities.all, 'board', boardId] as const,
+    byTask: (taskId: string) => [...queryKeys.activities.all, 'task', taskId] as const,
   },
 
   // Search

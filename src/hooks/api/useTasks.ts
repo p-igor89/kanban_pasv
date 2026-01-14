@@ -67,11 +67,7 @@ export function useTask(taskId: string | null) {
 
       const supabase = createClient();
 
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('id', taskId)
-        .single();
+      const { data, error } = await supabase.from('tasks').select('*').eq('id', taskId).single();
 
       if (error) throw error;
       return data;
@@ -155,9 +151,7 @@ export function useUpdateTask(taskId: string) {
       await queryClient.cancelQueries({ queryKey: queryKeys.tasks.detail(taskId) });
 
       // Snapshot previous value
-      const previousTask = queryClient.getQueryData<Task>(
-        queryKeys.tasks.detail(taskId)
-      );
+      const previousTask = queryClient.getQueryData<Task>(queryKeys.tasks.detail(taskId));
 
       // Optimistically update
       if (previousTask) {
@@ -172,10 +166,7 @@ export function useUpdateTask(taskId: string) {
     onError: (err, newData, context) => {
       // Rollback on error
       if (context?.previousTask) {
-        queryClient.setQueryData(
-          queryKeys.tasks.detail(taskId),
-          context.previousTask
-        );
+        queryClient.setQueryData(queryKeys.tasks.detail(taskId), context.previousTask);
       }
     },
     onSuccess: (data) => {
@@ -263,9 +254,6 @@ export function useReorderTasks() {
       return updates;
     },
     onSuccess: (updates) => {
-      // Get unique board IDs (assuming all tasks are from same board)
-      const boardIds = new Set<string>();
-
       updates.forEach((update) => {
         // Invalidate individual task cache
         queryClient.invalidateQueries({

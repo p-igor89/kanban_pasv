@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
@@ -196,9 +197,7 @@ test.describe('Accessibility Tests with Axe-Core', () => {
         console.log(`\n${violation.id}: ${violation.description}`);
         console.log(`Impact: ${violation.impact}`);
         console.log(`Help: ${violation.helpUrl}`);
-        console.log(
-          `Affected elements: ${violation.nodes.map((node) => node.target).join(', ')}`
-        );
+        console.log(`Affected elements: ${violation.nodes.map((node) => node.target).join(', ')}`);
       });
     }
 
@@ -208,7 +207,10 @@ test.describe('Accessibility Tests with Axe-Core', () => {
   test('should scan board page for accessibility', async ({ page }) => {
     await page.goto('/boards');
 
-    const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
+    const isLoginPage = await page
+      .locator('input[type="email"]')
+      .isVisible()
+      .catch(() => false);
 
     if (!isLoginPage) {
       // Wait for board list to load

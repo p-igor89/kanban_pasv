@@ -229,10 +229,7 @@ export function checkRateLimit(
  * @param configKey - Configuration key namespace (default: 'default')
  * @returns true if an entry was removed, false if none existed
  */
-export function resetRateLimit(
-  identifier: string,
-  configKey: string = 'default'
-): boolean {
+export function resetRateLimit(identifier: string, configKey: string = 'default'): boolean {
   const storeKey = `${configKey}:${identifier}`;
   return rateLimitStore.delete(storeKey);
 }
@@ -261,14 +258,14 @@ export function getRateLimitStoreSize(): number {
  * @param result - Result from checkRateLimit
  * @returns Headers object with rate limit information
  */
-export function createRateLimitHeaders(
-  result: RateLimitResult
-): Record<string, string> {
+export function createRateLimitHeaders(result: RateLimitResult): Record<string, string> {
   return {
     'X-RateLimit-Limit': result.limit.toString(),
     'X-RateLimit-Remaining': result.remaining.toString(),
     'X-RateLimit-Reset': result.resetTime.toString(),
-    ...(result.allowed ? {} : { 'Retry-After': Math.ceil((result.resetTime - Date.now()) / 1000).toString() }),
+    ...(result.allowed
+      ? {}
+      : { 'Retry-After': Math.ceil((result.resetTime - Date.now()) / 1000).toString() }),
   };
 }
 

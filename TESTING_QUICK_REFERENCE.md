@@ -289,6 +289,7 @@ npx playwright test --screenshot=only-on-failure
 ### Common Issues
 
 **Issue: Test timeout**
+
 ```typescript
 // Increase timeout for specific test
 test('slow test', async ({ page }) => {
@@ -299,18 +300,20 @@ test('slow test', async ({ page }) => {
 ```
 
 **Issue: Element not found**
+
 ```typescript
 // Use better locators
 // Bad
-page.locator('.some-class')
+page.locator('.some-class');
 
 // Good
-page.getByRole('button', { name: /submit/i })
-page.getByLabel(/email/i)
-page.getByTestId('unique-id')
+page.getByRole('button', { name: /submit/i });
+page.getByLabel(/email/i);
+page.getByTestId('unique-id');
 ```
 
 **Issue: Flaky tests**
+
 ```typescript
 // Wait for conditions instead of arbitrary timeouts
 // Bad
@@ -345,12 +348,14 @@ await expect(page.getByText('Done')).toBeVisible();
 ## Coverage Thresholds
 
 Current requirements:
+
 - Branches: 60%
 - Functions: 70%
 - Lines: 70%
 - Statements: 70%
 
 Goal:
+
 - Branches: 80%
 - Functions: 85%
 - Lines: 85%
@@ -359,11 +364,13 @@ Goal:
 ## CI/CD Integration
 
 Tests run automatically on:
+
 - Push to main/develop
 - Pull requests
 - Pre-commit hooks (lint + type-check)
 
 View results:
+
 - GitHub Actions tab
 - Codecov for coverage reports
 - Playwright HTML report artifacts

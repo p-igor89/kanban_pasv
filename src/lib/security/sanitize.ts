@@ -61,10 +61,7 @@ export function sanitizeSearchInput(input: string): string {
  * const clean = sanitizeString('  Hello\x00World  ', { maxLength: 50 });
  * // Returns: 'HelloWorld'
  */
-export function sanitizeString(
-  input: string,
-  options: SanitizeStringOptions = {}
-): string {
+export function sanitizeString(input: string, options: SanitizeStringOptions = {}): string {
   const {
     maxLength = 1000,
     trim = true,

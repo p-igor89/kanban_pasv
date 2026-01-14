@@ -7,24 +7,28 @@ This comprehensive performance optimization plan addresses the identified bottle
 ## Current Performance Issues
 
 ### 1. Component Architecture Issues
+
 - **Board page component**: 538 lines (needs splitting into smaller components)
 - **Limited memoization**: Only 2 components use React.memo
 - **Excessive useCallback**: 38 instances (potential overuse causing unnecessary memory overhead)
 - **Missing virtualization**: No virtual scrolling for large boards
 
 ### 2. Data Fetching & State Management
+
 - **No data caching layer**: Direct fetch calls without React Query/SWR
 - **Missing optimistic updates**: Some operations wait for server response
 - **Inefficient state updates**: Multiple setState calls causing re-renders
 - **No request deduplication**: Duplicate API calls possible
 
 ### 3. Bundle & Asset Optimization
+
 - **No bundle monitoring**: Missing size tracking and alerts
 - **Large dependencies**: @dnd-kit and Supabase not code-split
 - **Missing lazy loading**: Components loaded upfront
 - **Tailwind CSS v4**: Not optimized for production
 
 ### 4. Runtime Performance
+
 - **setTimeout without cleanup**: Memory leaks possible
 - **No debouncing/throttling**: Search and drag operations unoptimized
 - **Missing performance monitoring**: No RUM or synthetic monitoring
@@ -32,18 +36,23 @@ This comprehensive performance optimization plan addresses the identified bottle
 ## Optimization Strategy
 
 ### Phase 1: Quick Wins (Week 1)
+
 Focus on immediate improvements with minimal code changes.
 
 ### Phase 2: Component Optimization (Week 2)
+
 Restructure components and implement memoization strategies.
 
 ### Phase 3: Data Layer Enhancement (Week 3)
+
 Implement caching and optimize data fetching.
 
 ### Phase 4: Bundle & Build Optimization (Week 4)
+
 Reduce bundle size and improve loading performance.
 
 ### Phase 5: Monitoring & Maintenance (Ongoing)
+
 Set up performance monitoring and continuous optimization.
 
 ---
@@ -56,13 +65,11 @@ Set up performance monitoring and continuous optimization.
 
 ```typescript
 // Components to memoize immediately
-- BoardColumn
-- BoardTaskCard
-- TaskDrawer
-- CreateTaskModal
+-BoardColumn - BoardTaskCard - TaskDrawer - CreateTaskModal;
 ```
 
 **Implementation Plan:**
+
 1. Add React.memo with custom comparison functions
 2. Ensure props are stable (use useCallback appropriately)
 3. Measure re-render count before/after
@@ -261,14 +268,14 @@ module.exports = {
     transform: {
       tsx: (content) => {
         // Remove unused classes
-      }
-    }
+      },
+    },
   },
   experimental: {
     optimizeUniversalDefaults: true,
-    matchVariant: true
-  }
-}
+    matchVariant: true,
+  },
+};
 ```
 
 ### 4.3 Implement Next.js Image Optimization
@@ -365,6 +372,7 @@ npm install --save-dev size-limit @size-limit/preset-app
 ## Implementation Checklist
 
 ### Week 1 - Quick Wins
+
 - [ ] Add React.memo to 5 key components
 - [ ] Optimize useCallback usage
 - [ ] Implement debouncing for search
@@ -372,6 +380,7 @@ npm install --save-dev size-limit @size-limit/preset-app
 - [ ] Add basic performance logging
 
 ### Week 2 - Component Optimization
+
 - [ ] Split Board page into sub-components
 - [ ] Implement virtual scrolling
 - [ ] Optimize drag-and-drop rendering
@@ -379,6 +388,7 @@ npm install --save-dev size-limit @size-limit/preset-app
 - [ ] Add component-level error boundaries
 
 ### Week 3 - Data Layer
+
 - [ ] Set up TanStack Query
 - [ ] Implement optimistic updates
 - [ ] Add Zustand for UI state
@@ -386,6 +396,7 @@ npm install --save-dev size-limit @size-limit/preset-app
 - [ ] Implement request deduplication
 
 ### Week 4 - Bundle Optimization
+
 - [ ] Add code splitting for modals
 - [ ] Optimize Tailwind CSS output
 - [ ] Implement image optimization
@@ -393,6 +404,7 @@ npm install --save-dev size-limit @size-limit/preset-app
 - [ ] Configure performance budgets
 
 ### Ongoing - Monitoring
+
 - [ ] Deploy Sentry Performance
 - [ ] Track Core Web Vitals
 - [ ] Set up alerting
@@ -405,16 +417,16 @@ npm install --save-dev size-limit @size-limit/preset-app
 
 ### Target Performance Improvements
 
-| Metric | Current | Target | Improvement |
-|--------|---------|--------|-------------|
-| Initial Bundle Size | ~450KB | 250KB | -45% |
-| LCP (Largest Contentful Paint) | 3.2s | 1.8s | -44% |
-| FID (First Input Delay) | 150ms | 50ms | -67% |
-| CLS (Cumulative Layout Shift) | 0.15 | 0.05 | -67% |
-| TTI (Time to Interactive) | 4.5s | 2.5s | -44% |
-| Re-renders per interaction | 8-12 | 2-3 | -75% |
-| API calls per session | 150 | 50 | -67% |
-| Memory usage (after 30min) | 180MB | 100MB | -44% |
+| Metric                         | Current | Target | Improvement |
+| ------------------------------ | ------- | ------ | ----------- |
+| Initial Bundle Size            | ~450KB  | 250KB  | -45%        |
+| LCP (Largest Contentful Paint) | 3.2s    | 1.8s   | -44%        |
+| FID (First Input Delay)        | 150ms   | 50ms   | -67%        |
+| CLS (Cumulative Layout Shift)  | 0.15    | 0.05   | -67%        |
+| TTI (Time to Interactive)      | 4.5s    | 2.5s   | -44%        |
+| Re-renders per interaction     | 8-12    | 2-3    | -75%        |
+| API calls per session          | 150     | 50     | -67%        |
+| Memory usage (after 30min)     | 180MB   | 100MB  | -44%        |
 
 ### Performance Budget
 
@@ -424,18 +436,18 @@ module.exports = {
   bundles: [
     {
       path: '_app.js',
-      maxSize: '100KB'
+      maxSize: '100KB',
     },
     {
       path: 'boards/[boardId].js',
-      maxSize: '50KB'
-    }
+      maxSize: '50KB',
+    },
   ],
   metrics: {
     'lighthouse-performance': 90,
     'first-contentful-paint': '1.5s',
-    'interactive': '3.5s'
-  }
+    interactive: '3.5s',
+  },
 };
 ```
 
@@ -465,18 +477,21 @@ module.exports = {
 ## Resources & References
 
 ### Tools
+
 - [Chrome DevTools Performance](https://developer.chrome.com/docs/devtools/performance/)
 - [Lighthouse CI](https://github.com/GoogleChrome/lighthouse-ci)
 - [WebPageTest](https://www.webpagetest.org/)
 - [Bundle Analyzer](https://github.com/webpack-contrib/webpack-bundle-analyzer)
 
 ### Libraries
+
 - [@tanstack/react-query](https://tanstack.com/query/latest)
 - [zustand](https://github.com/pmndrs/zustand)
 - [@tanstack/react-virtual](https://tanstack.com/virtual/latest)
 - [comlink](https://github.com/GoogleChromeLabs/comlink) (Web Workers)
 
 ### Documentation
+
 - [Next.js Performance](https://nextjs.org/docs/app/building-your-application/optimizing)
 - [React Performance](https://react.dev/learn/render-and-commit)
 - [Web Vitals](https://web.dev/vitals/)

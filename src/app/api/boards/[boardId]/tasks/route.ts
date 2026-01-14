@@ -135,8 +135,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return validation.error;
     }
 
-    const { title, description, status_id, priority, tags, assignee_name, assignee_color, due_date } =
-      validation.data;
+    const {
+      title,
+      description,
+      status_id,
+      priority,
+      tags,
+      assignee_name,
+      assignee_color,
+      due_date,
+    } = validation.data;
 
     // Verify status belongs to this board
     const { data: status } = await supabase

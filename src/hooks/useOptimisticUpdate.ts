@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
@@ -54,7 +55,7 @@ export function useOptimisticUpdate<T>() {
 
           if (attempts <= retryCount) {
             // Wait before retrying
-            await new Promise(resolve => setTimeout(resolve, retryDelay * attempts));
+            await new Promise((resolve) => setTimeout(resolve, retryDelay * attempts));
           }
         }
       }
@@ -70,7 +71,7 @@ export function useOptimisticUpdate<T>() {
       return {
         success: false,
         data: rollbackDataRef.current,
-        error: lastError
+        error: lastError,
       };
     },
     []
@@ -87,7 +88,7 @@ export function useOptimisticUpdate<T>() {
     executeUpdate,
     rollback,
     isUpdating,
-    hasRollbackData: rollbackDataRef.current !== null
+    hasRollbackData: rollbackDataRef.current !== null,
   };
 }
 
@@ -107,9 +108,7 @@ export function useOptimisticTaskUpdate() {
     ) => {
       // Apply optimistic update to UI
       setTasks((tasks) =>
-        tasks.map((task) =>
-          task.id === taskId ? { ...task, ...updates } : task
-        )
+        tasks.map((task) => (task.id === taskId ? { ...task, ...updates } : task))
       );
 
       // Execute actual update
@@ -120,7 +119,7 @@ export function useOptimisticTaskUpdate() {
           const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updates)
+            body: JSON.stringify(updates),
           });
 
           if (!response.ok) {
@@ -132,15 +131,11 @@ export function useOptimisticTaskUpdate() {
         {
           onError: (error, rollbackData) => {
             // Rollback UI on failure
-            setTasks((tasks) =>
-              tasks.map((task) =>
-                task.id === taskId ? rollbackData : task
-              )
-            );
+            setTasks((tasks) => tasks.map((task) => (task.id === taskId ? rollbackData : task)));
             toast.error('Failed to update task. Changes reverted.');
           },
           retryCount: 2,
-          retryDelay: 500
+          retryDelay: 500,
         }
       );
 

@@ -31,6 +31,7 @@ This document outlines a complete testing strategy for modernizing the Next.js K
 ## Accessibility Testing
 
 ### Tools
+
 - **jest-axe**: Automated accessibility testing in Jest
 - **@axe-core/playwright**: Accessibility testing in E2E tests
 - **WCAG 2.1 Level AA** compliance target
@@ -40,6 +41,7 @@ This document outlines a complete testing strategy for modernizing the Next.js K
 #### 1. Component-Level Accessibility Tests
 
 Test all interactive components for:
+
 - Keyboard navigation
 - ARIA labels and roles
 - Color contrast ratios
@@ -47,6 +49,7 @@ Test all interactive components for:
 - Screen reader compatibility
 
 **Example: Board Column Accessibility Test**
+
 ```typescript
 // src/components/board/__tests__/BoardColumn.accessibility.test.tsx
 import { render } from '@testing-library/react';
@@ -96,6 +99,7 @@ describe('BoardColumn Accessibility', () => {
 #### 2. Form Accessibility Tests
 
 **Example: Task Creation Modal**
+
 ```typescript
 // src/components/modals/__tests__/CreateTaskModal.accessibility.test.tsx
 describe('CreateTaskModal Accessibility', () => {
@@ -136,6 +140,7 @@ describe('CreateTaskModal Accessibility', () => {
 #### 3. Drag-and-Drop Accessibility
 
 **Example: Keyboard-Accessible Drag-and-Drop**
+
 ```typescript
 // src/components/board/__tests__/TaskCard.accessibility.test.tsx
 describe('TaskCard Drag-and-Drop Accessibility', () => {
@@ -201,9 +206,7 @@ test.describe('Accessibility Tests', () => {
   test('should have sufficient color contrast', async ({ page }) => {
     await page.goto('/boards/test-board');
 
-    const results = await new AxeBuilder({ page })
-      .withTags(['cat.color'])
-      .analyze();
+    const results = await new AxeBuilder({ page }).withTags(['cat.color']).analyze();
 
     expect(results.violations).toEqual([]);
   });
@@ -260,7 +263,10 @@ test.describe('Task CRUD Operations', () => {
 
   test('should create a task with all fields', async ({ page }) => {
     // Open create task modal
-    await page.getByRole('button', { name: /add task/i }).first().click();
+    await page
+      .getByRole('button', { name: /add task/i })
+      .first()
+      .click();
 
     // Fill in task details
     await page.getByLabel(/title/i).fill('Test Task Title');
@@ -313,7 +319,10 @@ test.describe('Task CRUD Operations', () => {
   });
 
   test('should validate required fields', async ({ page }) => {
-    await page.getByRole('button', { name: /add task/i }).first().click();
+    await page
+      .getByRole('button', { name: /add task/i })
+      .first()
+      .click();
 
     // Try to submit without title
     await page.getByRole('button', { name: /create task/i }).click();
@@ -426,7 +435,10 @@ test.describe('Real-time Collaboration', () => {
     ]);
 
     // User 1 creates a task
-    await page1.getByRole('button', { name: /add task/i }).first().click();
+    await page1
+      .getByRole('button', { name: /add task/i })
+      .first()
+      .click();
     await page1.getByLabel(/title/i).fill('Realtime Test Task');
     await page1.getByRole('button', { name: /create/i }).click();
 
@@ -464,6 +476,7 @@ async function loginUser(page, email: string, password: string) {
 #### 1. Presentational Components
 
 Focus on:
+
 - Rendering with different props
 - User interactions
 - Conditional rendering
@@ -574,12 +587,9 @@ describe('useDebounce Hook', () => {
   });
 
   it('should debounce value changes', () => {
-    const { result, rerender } = renderHook(
-      ({ value, delay }) => useDebounce(value, delay),
-      {
-        initialProps: { value: 'initial', delay: 500 },
-      }
-    );
+    const { result, rerender } = renderHook(({ value, delay }) => useDebounce(value, delay), {
+      initialProps: { value: 'initial', delay: 500 },
+    });
 
     expect(result.current).toBe('initial');
 
@@ -599,12 +609,9 @@ describe('useDebounce Hook', () => {
   });
 
   it('should cancel previous timeout on rapid changes', () => {
-    const { result, rerender } = renderHook(
-      ({ value }) => useDebounce(value, 500),
-      {
-        initialProps: { value: 'first' },
-      }
-    );
+    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 500), {
+      initialProps: { value: 'first' },
+    });
 
     rerender({ value: 'second' });
     act(() => jest.advanceTimersByTime(250));
@@ -706,10 +713,7 @@ describe('Task Utilities', () => {
     });
 
     it('should return 100 for all completed tasks', () => {
-      const tasks = [
-        { status: 'done' },
-        { status: 'done' },
-      ];
+      const tasks = [{ status: 'done' }, { status: 'done' }];
 
       expect(calculateTaskCompletionRate(tasks)).toBe(100);
     });
@@ -769,9 +773,7 @@ describe('useBoardState Hook', () => {
     });
 
     // Should add immediately (optimistic)
-    expect(result.current.tasks).toContainEqual(
-      expect.objectContaining({ title: 'New Task' })
-    );
+    expect(result.current.tasks).toContainEqual(expect.objectContaining({ title: 'New Task' }));
 
     // Should call API
     await waitFor(() => {
@@ -847,12 +849,7 @@ export function createMockNextRequest(options: {
   headers?: Record<string, string>;
   params?: Record<string, string>;
 }): NextRequest {
-  const {
-    method = 'GET',
-    url = 'http://localhost:3000/api/test',
-    body,
-    headers = {},
-  } = options;
+  const { method = 'GET', url = 'http://localhost:3000/api/test', body, headers = {} } = options;
 
   return new NextRequest(url, {
     method,
@@ -1319,7 +1316,8 @@ test.describe('Performance Tests', () => {
 
   test('should bundle size be under 500KB for main chunk', async ({ page }) => {
     const performanceEntries = await page.evaluate(() => {
-      return performance.getEntriesByType('resource')
+      return performance
+        .getEntriesByType('resource')
         .filter((entry: any) => entry.name.includes('_next/static'))
         .map((entry: any) => ({
           name: entry.name,
@@ -1327,8 +1325,8 @@ test.describe('Performance Tests', () => {
         }));
     });
 
-    const mainChunk = performanceEntries.find((entry: any) =>
-      entry.name.includes('main') && entry.name.endsWith('.js')
+    const mainChunk = performanceEntries.find(
+      (entry: any) => entry.name.includes('main') && entry.name.endsWith('.js')
     );
 
     if (mainChunk) {

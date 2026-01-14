@@ -17,7 +17,10 @@ test.describe('Complete Task CRUD Operations', () => {
     });
 
     // Check if we're on login page instead
-    const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
+    const isLoginPage = await page
+      .locator('input[type="email"]')
+      .isVisible()
+      .catch(() => false);
 
     if (isLoginPage) {
       // For demo purposes, we'll test the flow structure
@@ -75,7 +78,10 @@ test.describe('Complete Task CRUD Operations', () => {
   test('should edit existing task', async ({ page }) => {
     await page.goto('/boards');
 
-    const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
+    const isLoginPage = await page
+      .locator('input[type="email"]')
+      .isVisible()
+      .catch(() => false);
     if (isLoginPage) {
       test.skip();
       return;
@@ -114,7 +120,10 @@ test.describe('Complete Task CRUD Operations', () => {
   test('should delete task with confirmation', async ({ page }) => {
     await page.goto('/boards');
 
-    const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
+    const isLoginPage = await page
+      .locator('input[type="email"]')
+      .isVisible()
+      .catch(() => false);
     if (isLoginPage) {
       test.skip();
       return;
@@ -149,7 +158,10 @@ test.describe('Complete Task CRUD Operations', () => {
   test('should validate required fields on create', async ({ page }) => {
     await page.goto('/boards');
 
-    const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
+    const isLoginPage = await page
+      .locator('input[type="email"]')
+      .isVisible()
+      .catch(() => false);
     if (isLoginPage) {
       test.skip();
       return;
@@ -169,7 +181,10 @@ test.describe('Complete Task CRUD Operations', () => {
       const titleInput = page.getByLabel(/title/i);
 
       // Check for validation message or that modal is still open
-      const isModalOpen = await page.locator('[role="dialog"]').isVisible().catch(() => true);
+      const isModalOpen = await page
+        .locator('[role="dialog"]')
+        .isVisible()
+        .catch(() => true);
       expect(isModalOpen).toBe(true);
 
       // Check if title input shows validation
@@ -185,7 +200,10 @@ test.describe('Complete Task CRUD Operations', () => {
   test('should filter tasks by status', async ({ page }) => {
     await page.goto('/boards');
 
-    const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
+    const isLoginPage = await page
+      .locator('input[type="email"]')
+      .isVisible()
+      .catch(() => false);
     if (isLoginPage) {
       test.skip();
       return;
@@ -216,7 +234,10 @@ test.describe('Complete Task CRUD Operations', () => {
   test('should search tasks by title', async ({ page }) => {
     await page.goto('/boards');
 
-    const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
+    const isLoginPage = await page
+      .locator('input[type="email"]')
+      .isVisible()
+      .catch(() => false);
     if (isLoginPage) {
       test.skip();
       return;
@@ -249,7 +270,10 @@ test.describe('Task Validation Rules', () => {
   test('should enforce title length limit', async ({ page }) => {
     await page.goto('/boards');
 
-    const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
+    const isLoginPage = await page
+      .locator('input[type="email"]')
+      .isVisible()
+      .catch(() => false);
     if (isLoginPage) {
       test.skip();
       return;
@@ -286,7 +310,10 @@ test.describe('Task Validation Rules', () => {
   test('should validate tag count limit', async ({ page }) => {
     await page.goto('/boards');
 
-    const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
+    const isLoginPage = await page
+      .locator('input[type="email"]')
+      .isVisible()
+      .catch(() => false);
     if (isLoginPage) {
       test.skip();
       return;

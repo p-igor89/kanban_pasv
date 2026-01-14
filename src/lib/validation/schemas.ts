@@ -169,11 +169,7 @@ export const UpdateBoardSchema = z.object({
     .max(100, 'Board name must be at most 100 characters')
     .trim()
     .optional(),
-  description: z
-    .string()
-    .max(500, 'Description must be at most 500 characters')
-    .trim()
-    .nullish(),
+  description: z.string().max(500, 'Description must be at most 500 characters').trim().nullish(),
 });
 
 // ============================================
@@ -261,11 +257,7 @@ export const UpdateMemberRoleSchema = z.object({
 
 /** Schema for search queries */
 export const SearchQuerySchema = z.object({
-  q: z
-    .string()
-    .min(1, 'Search query is required')
-    .max(200, 'Search query too long')
-    .trim(),
+  q: z.string().min(1, 'Search query is required').max(200, 'Search query too long').trim(),
   board_id: UUIDSchema.optional(),
   limit: z.coerce
     .number()

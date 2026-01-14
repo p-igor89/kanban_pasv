@@ -28,10 +28,7 @@ export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
  * @returns true if localStorage is available
  */
 function isBrowser(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    typeof window.localStorage !== 'undefined'
-  );
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 }
 
 /**
@@ -66,11 +63,7 @@ export type TypeValidator<T> = (value: unknown) => value is T;
  * };
  * const settings = safeGetItem('settings', { theme: 'light', fontSize: 14 }, isSettings);
  */
-export function safeGetItem<T>(
-  key: string,
-  defaultValue: T,
-  validator?: TypeValidator<T>
-): T {
+export function safeGetItem<T>(key: string, defaultValue: T, validator?: TypeValidator<T>): T {
   // Return default during SSR
   if (!isBrowser()) {
     return defaultValue;
@@ -271,11 +264,7 @@ const isRecentBoardArray: TypeValidator<RecentBoard[]> = (
  * @returns Array of recent boards
  */
 export function getRecentBoards(limit: number = 5): RecentBoard[] {
-  const boards = safeGetItem<RecentBoard[]>(
-    STORAGE_KEYS.RECENT_BOARDS,
-    [],
-    isRecentBoardArray
-  );
+  const boards = safeGetItem<RecentBoard[]>(STORAGE_KEYS.RECENT_BOARDS, [], isRecentBoardArray);
   return boards.slice(0, limit);
 }
 

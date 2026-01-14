@@ -1,3 +1,4 @@
+/* eslint-disable no-console, @typescript-eslint/no-explicit-any */
 import { test, expect } from '@playwright/test';
 
 test.describe('Drag-and-Drop Performance Tests', () => {
@@ -5,7 +6,10 @@ test.describe('Drag-and-Drop Performance Tests', () => {
     await page.goto('/');
 
     // Check if we need to authenticate
-    const isLoginPage = await page.locator('input[type="email"]').isVisible().catch(() => false);
+    const isLoginPage = await page
+      .locator('input[type="email"]')
+      .isVisible()
+      .catch(() => false);
 
     if (isLoginPage) {
       test.skip();
@@ -112,9 +116,13 @@ test.describe('Drag-and-Drop Performance Tests', () => {
 
       const targetBox = await targetColumn.boundingBox();
       if (targetBox) {
-        await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, {
-          steps: 20,
-        });
+        await page.mouse.move(
+          targetBox.x + targetBox.width / 2,
+          targetBox.y + targetBox.height / 2,
+          {
+            steps: 20,
+          }
+        );
       }
 
       await page.mouse.up();
@@ -163,7 +171,10 @@ test.describe('Drag-and-Drop Performance Tests', () => {
         const columns = page.locator('[data-testid="board-column"]');
         const targetColumn = columns.nth((i % 2) + 1); // Alternate columns
 
-        if ((await task.isVisible().catch(() => false)) && (await targetColumn.isVisible().catch(() => false))) {
+        if (
+          (await task.isVisible().catch(() => false)) &&
+          (await targetColumn.isVisible().catch(() => false))
+        ) {
           await task.dragTo(targetColumn);
           await page.waitForTimeout(100);
         }
@@ -385,7 +396,9 @@ test.describe('Board Load Performance', () => {
       await firstBoard.click();
 
       // Wait for board to be interactive
-      await newPage.waitForSelector('[data-testid="board-column"]', { timeout: 5000 }).catch(() => {});
+      await newPage
+        .waitForSelector('[data-testid="board-column"]', { timeout: 5000 })
+        .catch(() => {});
 
       // Try to interact with a task
       const task = newPage.locator('[data-testid^="task-"]').first();

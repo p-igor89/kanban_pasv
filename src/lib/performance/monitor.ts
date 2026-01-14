@@ -2,6 +2,7 @@
  * Performance monitoring utility for tracking Core Web Vitals and custom metrics
  * Integrates with analytics services and provides real-time performance insights
  */
+/* eslint-disable no-console, @typescript-eslint/no-explicit-any */
 
 interface PerformanceMetrics {
   // Core Web Vitals
@@ -128,7 +129,7 @@ class PerformanceMonitor {
             this.reportLongTask({
               name: entry.name,
               duration: entry.duration,
-              startTime: entry.startTime
+              startTime: entry.startTime,
             });
           }
         }
@@ -147,7 +148,7 @@ class PerformanceMonitor {
             this.reportSlowResource({
               name: entry.name,
               duration: entry.duration,
-              type: entry.initiatorType
+              type: entry.initiatorType,
             });
           }
         }
@@ -184,7 +185,9 @@ class PerformanceMonitor {
 
     // Log if duration exceeds threshold
     if (threshold && duration > threshold) {
-      console.warn(`[Performance] ${name} took ${duration.toFixed(2)}ms (threshold: ${threshold}ms)`);
+      console.warn(
+        `[Performance] ${name} took ${duration.toFixed(2)}ms (threshold: ${threshold}ms)`
+      );
     }
 
     if (this.debug) {
@@ -279,7 +282,7 @@ class PerformanceMonitor {
       userAgent: navigator.userAgent,
       connection: (navigator as any).connection?.effectiveType,
       deviceMemory: (navigator as any).deviceMemory,
-      hardwareConcurrency: navigator.hardwareConcurrency
+      hardwareConcurrency: navigator.hardwareConcurrency,
     };
 
     // Buffer metrics for batch reporting
@@ -303,7 +306,7 @@ class PerformanceMonitor {
     const payload = {
       metrics: this.buffer,
       sessionId: this.getSessionId(),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     // Send to analytics endpoint
@@ -312,8 +315,8 @@ class PerformanceMonitor {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-        keepalive: true
-      }).catch(error => {
+        keepalive: true,
+      }).catch((error) => {
         console.error('Failed to report metrics:', error);
       });
     }
@@ -368,7 +371,7 @@ class PerformanceMonitor {
    * Cleanup observers on unmount
    */
   public cleanup() {
-    this.observers.forEach(observer => observer.disconnect());
+    this.observers.forEach((observer) => observer.disconnect());
     this.observers.clear();
     this.marks.clear();
     this.flushBuffer();
@@ -380,9 +383,11 @@ export const performanceMonitor = new PerformanceMonitor();
 
 // Export convenience functions
 export const markStart = (name: string) => performanceMonitor.markStart(name);
-export const markEnd = (name: string, threshold?: number) => performanceMonitor.markEnd(name, threshold);
+export const markEnd = (name: string, threshold?: number) =>
+  performanceMonitor.markEnd(name, threshold);
 export const getMetrics = () => performanceMonitor.getMetrics();
-export const checkBudget = (budget: Partial<PerformanceMetrics>) => performanceMonitor.checkBudget(budget);
+export const checkBudget = (budget: Partial<PerformanceMetrics>) =>
+  performanceMonitor.checkBudget(budget);
 
 // React hook for performance monitoring
 export function usePerformanceMonitor() {
@@ -390,6 +395,6 @@ export function usePerformanceMonitor() {
     markStart,
     markEnd,
     getMetrics,
-    checkBudget
+    checkBudget,
   };
 }

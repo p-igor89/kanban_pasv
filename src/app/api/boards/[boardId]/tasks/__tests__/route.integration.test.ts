@@ -2,6 +2,7 @@
  * Integration tests for Tasks API endpoints
  * Tests the full API route handlers with mocked Supabase client
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextRequest } from 'next/server';
 import { GET, POST } from '../route';
@@ -178,7 +179,9 @@ describe('Tasks API - GET /api/boards/[boardId]/tasks', () => {
         params: Promise.resolve({ boardId: 'board-1' }),
       });
 
-      expect(mockSupabase.or).toHaveBeenCalledWith('title.ilike.%urgent%,description.ilike.%urgent%');
+      expect(mockSupabase.or).toHaveBeenCalledWith(
+        'title.ilike.%urgent%,description.ilike.%urgent%'
+      );
     });
 
     it('should order tasks by status_id and order', async () => {
