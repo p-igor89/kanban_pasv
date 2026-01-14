@@ -8,25 +8,31 @@ import type { Board, BoardWithData, CreateBoardRequest } from '@/types/board';
 import { createClient } from '@/lib/supabase/client';
 
 /**
+ * Extended Board type with computed fields from API
+ */
+export interface BoardWithMeta extends Board {
+  statuses_count?: number;
+  tasks_count?: number;
+  role?: 'owner' | 'admin' | 'member' | 'viewer';
+  is_shared?: boolean;
+}
+
+/**
  * Fetch all boards for the current user
+ * Uses API endpoint to get computed fields (statuses_count, tasks_count, role, is_shared)
  */
 export function useBoards() {
   return useQuery({
     queryKey: queryKeys.boards.lists(),
-    queryFn: async (): Promise<Board[]> => {
-      const supabase = createClient();
+    queryFn: async (): Promise<BoardWithMeta[]> => {
+      const response = await fetch('/api/boards');
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!response.ok) {
+        throw new Error('Failed to fetch boards');
+      }
 
-      const { data, error } = await supabase
-        .from('boards')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
+      const { boards } = await response.json();
+      return boards || [];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -43,7 +49,9 @@ export function useBoard(boardId: string | null) {
 
       const supabase = createClient();
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       // Fetch board
@@ -58,10 +66,12 @@ export function useBoard(boardId: string | null) {
       // Fetch statuses with tasks
       const { data: statuses, error: statusesError } = await supabase
         .from('statuses')
-        .select(`
+        .select(
+          `
           *,
           tasks (*)
-        `)
+        `
+        )
         .eq('board_id', boardId)
         .order('order', { ascending: true });
 
@@ -79,28 +89,25 @@ export function useBoard(boardId: string | null) {
 
 /**
  * Create a new board
+ * Uses API endpoint to support templates
  */
 export function useCreateBoard() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: CreateBoardRequest): Promise<Board> => {
-      const supabase = createClient();
+    mutationFn: async (data: CreateBoardRequest): Promise<BoardWithMeta> => {
+      const response = await fetch('/api/boards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create board');
+      }
 
-      const { data: board, error } = await supabase
-        .from('boards')
-        .insert({
-          user_id: user.id,
-          name: data.name,
-          description: data.description || null,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const { board } = await response.json();
       return board;
     },
     onSuccess: () => {
@@ -154,10 +161,7 @@ export function useDeleteBoard() {
     mutationFn: async (boardId: string): Promise<void> => {
       const supabase = createClient();
 
-      const { error } = await supabase
-        .from('boards')
-        .delete()
-        .eq('id', boardId);
+      const { error } = await supabase.from('boards').delete().eq('id', boardId);
 
       if (error) throw error;
     },
