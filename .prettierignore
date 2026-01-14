@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+build/
+dist/
+
+# Cache
+.cache/
+
+# Generated files
+next-env.d.ts
+*.lock
+package-lock.json
+
+# Public assets
+public/
+
+# IDE
+.idea/
+.vscode/
+
+# Coverage
+coverage/

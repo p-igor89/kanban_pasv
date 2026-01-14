@@ -1,0 +1,67 @@
+name: PR Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  quick-checks:
+    name: Quick Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check code formatting
+        run: npm run format:check
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Check for merge conflicts
+        run: |
+          if git grep -l '<<<<<<< HEAD' -- '*.ts' '*.tsx' '*.js' '*.jsx'; then
+            echo "❌ Merge conflict markers found!"
+            exit 1
+          fi
+          echo "✅ No merge conflicts detected"
+
+  pr-info:
+    name: PR Information
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR stats
+        run: |
+          echo "📊 PR Statistics:"
+          echo "Files changed: $(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} | wc -l)"
+          echo "Lines added: $(git diff --shortstat ${{ github.event.pull_request.base.sha }}...${{ github.sha }} | grep -oE '[0-9]+ insertion' | grep -oE '[0-9]+')"
+          echo "Lines deleted: $(git diff --shortstat ${{ github.event.pull_request.base.sha }}...${{ github.sha }} | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+')"
+
+      - name: Check PR size
+        run: |
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} | wc -l)
+          if [ $CHANGED_FILES -gt 50 ]; then
+            echo "⚠️  Warning: This PR changes more than 50 files ($CHANGED_FILES files)"
+            echo "Consider splitting into smaller PRs for easier review"
+          else
+            echo "✅ PR size looks good ($CHANGED_FILES files)"
+          fi
