@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, lazy, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
@@ -16,11 +16,13 @@ import { useRealtimeBoardState } from '@/hooks/useRealtimeBoard';
 // Components
 import { BoardHeader } from '@/components/board/BoardHeader';
 import { BoardColumns } from '@/components/board/BoardColumns';
-import CreateTaskModal from '@/components/board/CreateTaskModal';
-import TaskDrawer from '@/components/board/TaskDrawer';
-import StatusModal from '@/components/board/StatusModal';
-import BoardMembersModal from '@/components/board/BoardMembersModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+
+// Lazy-loaded modals for better initial load performance
+const CreateTaskModal = lazy(() => import('@/components/board/CreateTaskModal'));
+const TaskDrawer = lazy(() => import('@/components/board/TaskDrawer'));
+const StatusModal = lazy(() => import('@/components/board/StatusModal'));
+const BoardMembersModal = lazy(() => import('@/components/board/BoardMembersModal'));
 
 export default function BoardPage() {
   const params = useParams();
@@ -294,38 +296,46 @@ export default function BoardPage() {
         onDeleteStatus={setDeletingStatusId}
       />
 
-      {/* Modals */}
-      <CreateTaskModal
-        isOpen={state.isTaskModalOpen}
-        statuses={state.board.statuses}
-        defaultStatusId={state.defaultStatusId}
-        onClose={actions.closeTaskModal}
-        onSubmit={handleCreateTask}
-      />
+      {/* Modals - Lazy loaded with Suspense for better performance */}
+      <Suspense fallback={null}>
+        <CreateTaskModal
+          isOpen={state.isTaskModalOpen}
+          statuses={state.board.statuses}
+          defaultStatusId={state.defaultStatusId}
+          onClose={actions.closeTaskModal}
+          onSubmit={handleCreateTask}
+        />
+      </Suspense>
 
-      <TaskDrawer
-        task={state.selectedTask}
-        isOpen={state.isDrawerOpen}
-        boardId={boardId}
-        statuses={state.board.statuses}
-        onClose={actions.closeDrawer}
-        onUpdate={handleUpdateTask}
-        onDelete={handleDeleteTask}
-      />
+      <Suspense fallback={null}>
+        <TaskDrawer
+          task={state.selectedTask}
+          isOpen={state.isDrawerOpen}
+          boardId={boardId}
+          statuses={state.board.statuses}
+          onClose={actions.closeDrawer}
+          onUpdate={handleUpdateTask}
+          onDelete={handleDeleteTask}
+        />
+      </Suspense>
 
-      <StatusModal
-        isOpen={state.isStatusModalOpen}
-        status={state.editingStatus}
-        onClose={actions.closeStatusModal}
-        onSubmit={handleCreateOrUpdateStatus}
-      />
+      <Suspense fallback={null}>
+        <StatusModal
+          isOpen={state.isStatusModalOpen}
+          status={state.editingStatus}
+          onClose={actions.closeStatusModal}
+          onSubmit={handleCreateOrUpdateStatus}
+        />
+      </Suspense>
 
-      <BoardMembersModal
-        isOpen={state.isMembersModalOpen}
-        boardId={boardId}
-        currentUserRole={state.currentUserRole}
-        onClose={actions.closeMembersModal}
-      />
+      <Suspense fallback={null}>
+        <BoardMembersModal
+          isOpen={state.isMembersModalOpen}
+          boardId={boardId}
+          currentUserRole={state.currentUserRole}
+          onClose={actions.closeMembersModal}
+        />
+      </Suspense>
 
       {/* Delete Status Confirmation */}
       <ConfirmDialog
