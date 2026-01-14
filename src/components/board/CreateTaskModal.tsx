@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { Status } from '@/types/board';
+import FormInput from '@/components/ui/FormInput';
+import FormTextarea from '@/components/ui/FormTextarea';
+import FormSelect from '@/components/ui/FormSelect';
+import { useFormValidation, createValidationRules } from '@/hooks/useFormValidation';
 
 interface CreateTaskModalProps {
   isOpen: boolean;
@@ -18,6 +22,13 @@ interface CreateTaskModalProps {
   defaultStatusId: string | null;
 }
 
+const validationRules = {
+  title: createValidationRules.title(200),
+  status_id: {
+    required: 'Status is required',
+  },
+};
+
 export default function CreateTaskModal({
   isOpen,
   onClose,
@@ -32,6 +43,12 @@ export default function CreateTaskModal({
   const [dueDate, setDueDate] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const { getFieldError, handleBlur, validateAllFields, clearErrors, setFieldTouched } =
+    useFormValidation<{
+      title: string;
+      status_id: string;
+    }>(validationRules);
+
   useEffect(() => {
     if (isOpen) {
       setStatusId(defaultStatusId || statuses[0]?.id || '');
@@ -39,12 +56,15 @@ export default function CreateTaskModal({
       setDescription('');
       setPriority('');
       setDueDate('');
+      clearErrors();
     }
-  }, [isOpen, defaultStatusId, statuses]);
+  }, [isOpen, defaultStatusId, statuses, clearErrors]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !statusId) return;
+
+    const isValid = validateAllFields({ title, status_id: statusId });
+    if (!isValid) return;
 
     setLoading(true);
     try {
@@ -76,83 +96,72 @@ export default function CreateTaskModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Title *
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Task title"
-              maxLength={200}
-              required
-              autoFocus
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+          <FormInput
+            id="title"
+            type="text"
+            label="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => handleBlur('title', title)}
+            error={getFieldError('title')}
+            placeholder="Task title"
+            maxLength={200}
+            showRequiredIndicator
+            autoFocus
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Task description"
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            />
-          </div>
+          <FormTextarea
+            id="description"
+            label="Description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Task description"
+            rows={3}
+            maxLength={2000}
+            showCharCount
+          />
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Status *
-              </label>
-              <select
-                value={statusId}
-                onChange={(e) => setStatusId(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                {statuses.map((status) => (
-                  <option key={status.id} value={status.id}>
-                    {status.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <FormSelect
+              id="status"
+              label="Status"
+              value={statusId}
+              onChange={(e) => {
+                setStatusId(e.target.value);
+                setFieldTouched('status_id', true);
+              }}
+              onBlur={() => handleBlur('status_id', statusId)}
+              error={getFieldError('status_id')}
+              showRequiredIndicator
+            >
+              {statuses.map((status) => (
+                <option key={status.id} value={status.id}>
+                  {status.name}
+                </option>
+              ))}
+            </FormSelect>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Priority
-              </label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">None</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
-            </div>
+            <FormSelect
+              id="priority"
+              label="Priority"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+            >
+              <option value="">None</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </FormSelect>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Due Date
-            </label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+          <FormInput
+            id="dueDate"
+            type="date"
+            label="Due Date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
 
           <div className="flex justify-end gap-3 pt-4">
             <button
@@ -164,7 +173,7 @@ export default function CreateTaskModal({
             </button>
             <button
               type="submit"
-              disabled={loading || !title.trim() || !statusId}
+              disabled={loading}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg font-medium transition-colors"
             >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}

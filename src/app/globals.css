@@ -1,5 +1,8 @@
 @import 'tailwindcss';
 
+/* Configure dark mode to use .dark class (Tailwind v4) */
+@variant dark (&:where(.dark, .dark *));
+
 /* ================================================
    Testomat.io Inspired Color Palette
    Clean, modern, professional with indigo accent

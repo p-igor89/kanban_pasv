@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Mail, Lock, User, UserPlus } from 'lucide-react';
+import { Loader2, Mail, Lock, User, UserPlus, Check, X } from 'lucide-react';
 import OAuthButtons from '@/components/OAuthButtons';
+import FormInput from '@/components/ui/FormInput';
+import { useFormValidation, createValidationRules } from '@/hooks/useFormValidation';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -17,23 +19,41 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  const validationRules = useMemo(
+    () => ({
+      name: createValidationRules.name(true, 100),
+      email: createValidationRules.email(true),
+      password: createValidationRules.password(6),
+      confirmPassword: createValidationRules.confirmPassword(() => password),
+    }),
+    [password]
+  );
+
+  const { getFieldError, handleBlur, validateAllFields, validateField, touched } =
+    useFormValidation<{
+      name: string;
+      email: string;
+      password: string;
+      confirmPassword: string;
+    }>(validationRules);
+
+  // Password strength indicators
+  const passwordChecks = useMemo(
+    () => ({
+      length: password.length >= 6,
+      hasMatch: password.length > 0 && confirmPassword.length > 0 && password === confirmPassword,
+    }),
+    [password, confirmPassword]
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const isValid = validateAllFields({ name, email, password, confirmPassword });
+    if (!isValid) return;
+
     setLoading(true);
-
-    // Validation
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      setLoading(false);
-      return;
-    }
 
     try {
       const supabase = createClient();
@@ -59,6 +79,21 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Re-validate confirm password when password changes
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (error) setError(null);
+    // Re-validate confirm password if it's been touched
+    if (touched.confirmPassword && confirmPassword) {
+      setTimeout(() => validateField('confirmPassword', confirmPassword), 0);
+    }
+  };
+
+  const handleConfirmPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setConfirmPassword(e.target.value);
+    if (error) setError(null);
   };
 
   if (success) {
@@ -95,90 +130,92 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <div>
-          <label
-            htmlFor="name"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Full Name
-          </label>
-          <div className="relative">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="John Doe"
-            />
-          </div>
+        <FormInput
+          id="name"
+          type="text"
+          label="Full Name"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (error) setError(null);
+          }}
+          onBlur={() => handleBlur('name', name)}
+          error={getFieldError('name')}
+          icon={<User className="h-5 w-5" />}
+          placeholder="John Doe"
+          autoComplete="name"
+        />
+
+        <FormInput
+          id="email"
+          type="email"
+          label="Email"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (error) setError(null);
+          }}
+          onBlur={() => handleBlur('email', email)}
+          error={getFieldError('email')}
+          icon={<Mail className="h-5 w-5" />}
+          placeholder="you@example.com"
+          autoComplete="email"
+        />
+
+        <div className="space-y-2">
+          <FormInput
+            id="password"
+            type="password"
+            label="Password"
+            value={password}
+            onChange={handlePasswordChange}
+            onBlur={() => handleBlur('password', password)}
+            error={getFieldError('password')}
+            icon={<Lock className="h-5 w-5" />}
+            placeholder="••••••••"
+            autoComplete="new-password"
+          />
+          {/* Password strength indicator */}
+          {password.length > 0 && (
+            <div className="flex items-center gap-2 text-xs">
+              <span
+                className={`flex items-center gap-1 ${passwordChecks.length ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}
+              >
+                {passwordChecks.length ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                6+ characters
+              </span>
+            </div>
+          )}
         </div>
 
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Email
-          </label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="you@example.com"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Password
-          </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label
-            htmlFor="confirmPassword"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Confirm Password
-          </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={6}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
+        <div className="space-y-2">
+          <FormInput
+            id="confirmPassword"
+            type="password"
+            label="Confirm Password"
+            value={confirmPassword}
+            onChange={handleConfirmPasswordChange}
+            onBlur={() => handleBlur('confirmPassword', confirmPassword)}
+            error={getFieldError('confirmPassword')}
+            icon={<Lock className="h-5 w-5" />}
+            placeholder="••••••••"
+            autoComplete="new-password"
+          />
+          {/* Password match indicator */}
+          {confirmPassword.length > 0 && (
+            <div className="flex items-center gap-2 text-xs">
+              <span
+                className={`flex items-center gap-1 ${passwordChecks.hasMatch ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}
+              >
+                {passwordChecks.hasMatch ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <X className="h-3 w-3" />
+                )}
+                Passwords match
+              </span>
+            </div>
+          )}
         </div>
 
         <button

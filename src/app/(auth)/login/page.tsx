@@ -6,6 +6,15 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, Mail, Lock, LogIn } from 'lucide-react';
 import OAuthButtons from '@/components/OAuthButtons';
+import FormInput from '@/components/ui/FormInput';
+import { useFormValidation, createValidationRules } from '@/hooks/useFormValidation';
+
+const validationRules = {
+  email: createValidationRules.email(true),
+  password: {
+    required: 'Password is required',
+  },
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,9 +23,18 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const { getFieldError, handleBlur, validateAllFields } = useFormValidation<{
+    email: string;
+    password: string;
+  }>(validationRules);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const isValid = validateAllFields({ email, password });
+    if (!isValid) return;
+
     setLoading(true);
 
     try {
@@ -40,6 +58,16 @@ export default function LoginPage() {
     }
   };
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (error) setError(null);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    if (error) setError(null);
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
       <div className="text-center mb-8">
@@ -54,47 +82,31 @@ export default function LoginPage() {
           </div>
         )}
 
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Email
-          </label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="you@example.com"
-            />
-          </div>
-        </div>
+        <FormInput
+          id="email"
+          type="email"
+          label="Email"
+          value={email}
+          onChange={handleEmailChange}
+          onBlur={() => handleBlur('email', email)}
+          error={getFieldError('email')}
+          icon={<Mail className="h-5 w-5" />}
+          placeholder="you@example.com"
+          autoComplete="email"
+        />
 
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Password
-          </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
-        </div>
+        <FormInput
+          id="password"
+          type="password"
+          label="Password"
+          value={password}
+          onChange={handlePasswordChange}
+          onBlur={() => handleBlur('password', password)}
+          error={getFieldError('password')}
+          icon={<Lock className="h-5 w-5" />}
+          placeholder="••••••••"
+          autoComplete="current-password"
+        />
 
         <button
           type="submit"

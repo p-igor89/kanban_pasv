@@ -4,6 +4,17 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, User, Bell, Mail, Save, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
+import FormInput from '@/components/ui/FormInput';
+import { useFormValidation } from '@/hooks/useFormValidation';
+
+const validationRules = {
+  displayName: {
+    maxLength: {
+      value: 50,
+      message: 'Display name must be less than 50 characters',
+    },
+  },
+};
 
 interface Profile {
   id: string;
@@ -30,8 +41,13 @@ export default function SettingsPage() {
     email_board_invites: true,
   });
 
+  const { getFieldError, handleBlur, validateAllFields, clearErrors } = useFormValidation<{
+    displayName: string;
+  }>(validationRules);
+
   useEffect(() => {
     fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProfile = async () => {
@@ -48,6 +64,7 @@ export default function SettingsPage() {
           email_comments: data.profile.notification_preferences?.email_comments ?? true,
           email_board_invites: data.profile.notification_preferences?.email_board_invites ?? true,
         });
+        clearErrors();
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -58,6 +75,9 @@ export default function SettingsPage() {
   };
 
   const handleSaveProfile = async () => {
+    const isValid = validateAllFields({ displayName });
+    if (!isValid) return;
+
     setSaving(true);
     try {
       const response = await fetch('/api/profile', {
@@ -152,18 +172,18 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Display Name
-            </label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your display name"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+          <FormInput
+            id="displayName"
+            type="text"
+            label="Display Name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            onBlur={() => handleBlur('displayName', displayName)}
+            error={getFieldError('displayName')}
+            placeholder="Your display name"
+            maxLength={50}
+            helperText={`${displayName.length}/50 characters`}
+          />
 
           <button
             onClick={handleSaveProfile}

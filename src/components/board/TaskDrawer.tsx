@@ -1,11 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Trash2, Calendar, Tag, User, Flag, MessageSquare } from 'lucide-react';
+import { X, Trash2, Calendar, Tag, User, Flag, MessageSquare, AlertCircle } from 'lucide-react';
 import { Task, Status } from '@/types/board';
 import TaskComments from './TaskComments';
 import TaskAttachments from './TaskAttachments';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useFormValidation, createValidationRules } from '@/hooks/useFormValidation';
+
+const validationRules = {
+  title: createValidationRules.title(200),
+};
 
 interface TaskDrawerProps {
   task: Task | null;
@@ -46,6 +51,9 @@ export default function TaskDrawer({
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const { getFieldError, handleBlur, validateAllFields, clearErrors, setFieldTouched } =
+    useFormValidation<{ title: string }>(validationRules);
+
   useEffect(() => {
     if (task) {
       setTitle(task.title);
@@ -56,11 +64,15 @@ export default function TaskDrawer({
       setTags(task.tags || []);
       setAssigneeName(task.assignee_name || '');
       setAssigneeColor(task.assignee_color || '#6366f1');
+      clearErrors();
     }
-  }, [task]);
+  }, [task, clearErrors]);
 
   const handleSave = async () => {
-    if (!task || !title.trim()) return;
+    if (!task) return;
+
+    const isValid = validateAllFields({ title });
+    if (!isValid) return;
 
     setSaving(true);
     try {
@@ -139,13 +151,33 @@ export default function TaskDrawer({
         <div className="p-6 space-y-6">
           {/* Title */}
           <div>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full text-xl font-semibold bg-transparent border-none focus:ring-0 p-0 text-gray-900 dark:text-white placeholder-gray-400"
-              placeholder="Task title"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setFieldTouched('title', true);
+                }}
+                onBlur={() => handleBlur('title', title)}
+                maxLength={200}
+                className={`w-full text-xl font-semibold bg-transparent border-b-2 focus:outline-none pb-2 text-gray-900 dark:text-white placeholder-gray-400 transition-colors ${
+                  getFieldError('title')
+                    ? 'border-red-500 dark:border-red-400'
+                    : 'border-transparent focus:border-blue-500'
+                }`}
+                placeholder="Task title"
+              />
+              {getFieldError('title') && (
+                <AlertCircle className="absolute right-0 top-1 h-5 w-5 text-red-500" />
+              )}
+            </div>
+            {getFieldError('title') && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                {getFieldError('title')}
+              </p>
+            )}
+            <p className="mt-1 text-xs text-gray-400">{title.length}/200 characters</p>
           </div>
 
           {/* Status */}
@@ -223,7 +255,9 @@ export default function TaskDrawer({
               <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                 <Tag className="h-4 w-4 text-gray-500" />
               </div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tags</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Tags ({tags.length}/10)
+              </span>
             </div>
             <div className="flex flex-wrap gap-2 mb-2">
               {tags.map((tag) => (
@@ -241,14 +275,21 @@ export default function TaskDrawer({
                 </span>
               ))}
             </div>
+            {tags.length >= 10 && (
+              <p className="text-sm text-amber-600 dark:text-amber-400 mb-2">
+                Maximum of 10 tags reached
+              </p>
+            )}
             <div className="flex gap-2">
               <input
                 type="text"
                 value={newTag}
                 onChange={(e) => setNewTag(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                placeholder="Add tag"
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                placeholder={tags.length >= 10 ? 'Tag limit reached' : 'Add tag'}
+                disabled={tags.length >= 10}
+                maxLength={50}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleAddTag}
@@ -269,15 +310,17 @@ export default function TaskDrawer({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={6}
+              maxLength={2000}
               placeholder="Add a description..."
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
             />
+            <p className="mt-1 text-xs text-gray-400 text-right">{description.length}/2000</p>
           </div>
 
           {/* Save Button */}
           <button
             onClick={handleSave}
-            disabled={saving || !title.trim()}
+            disabled={saving}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 rounded-lg font-medium transition-colors"
           >
             {saving ? 'Saving...' : 'Save Changes'}
