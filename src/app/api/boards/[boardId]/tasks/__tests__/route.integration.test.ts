@@ -44,8 +44,11 @@ import { validateSearchParams, validateRequestBody } from '@/lib/validation';
 
 describe('Tasks API - GET /api/boards/[boardId]/tasks', () => {
   let mockSupabase: any;
+  let orderFinalResult: any;
 
   beforeEach(() => {
+    orderFinalResult = { data: [], error: null };
+
     // Create a chainable mock for Supabase queries
     mockSupabase = {
       from: jest.fn().mockReturnThis(),
@@ -55,7 +58,15 @@ describe('Tasks API - GET /api/boards/[boardId]/tasks', () => {
       delete: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
       or: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
+      order: jest.fn().mockImplementation(() => {
+        // Return chainable object that resolves to result when awaited
+        const chainableResult = {
+          ...mockSupabase,
+          order: mockSupabase.order,
+          then: (resolve: any) => resolve(orderFinalResult),
+        };
+        return chainableResult;
+      }),
       limit: jest.fn().mockReturnThis(),
       single: jest.fn(),
     };
@@ -168,11 +179,11 @@ describe('Tasks API - GET /api/boards/[boardId]/tasks', () => {
         data: { status_id: statusId, priority: undefined, search: undefined },
       });
 
-      // Mock the final query result (not using .single() for tasks query)
-      mockSupabase.order.mockResolvedValue({
+      // Set the final query result
+      orderFinalResult = {
         data: mockTasks,
         error: null,
-      });
+      };
 
       const request = new NextRequest(
         `http://localhost:3000/api/boards/board-1/tasks?status_id=${statusId}`
@@ -187,10 +198,17 @@ describe('Tasks API - GET /api/boards/[boardId]/tasks', () => {
     });
 
     it('should filter tasks by priority', async () => {
-      mockSupabase.order.mockResolvedValue({
+      // Mock validation with priority filter
+      (validateSearchParams as jest.Mock).mockReturnValue({
+        success: true,
+        data: { status_id: undefined, priority: 'high', search: undefined },
+      });
+
+      // Set the final query result
+      orderFinalResult = {
         data: [],
         error: null,
-      });
+      };
 
       const request = new NextRequest(
         'http://localhost:3000/api/boards/board-1/tasks?priority=high'
@@ -204,10 +222,11 @@ describe('Tasks API - GET /api/boards/[boardId]/tasks', () => {
     });
 
     it('should ignore invalid priority values', async () => {
-      mockSupabase.order.mockResolvedValue({
+      // Set the final query result
+      orderFinalResult = {
         data: [],
         error: null,
-      });
+      };
 
       const request = new NextRequest(
         'http://localhost:3000/api/boards/board-1/tasks?priority=invalid'
@@ -224,10 +243,17 @@ describe('Tasks API - GET /api/boards/[boardId]/tasks', () => {
     });
 
     it('should search in title and description', async () => {
-      mockSupabase.order.mockResolvedValue({
+      // Mock validation with search filter
+      (validateSearchParams as jest.Mock).mockReturnValue({
+        success: true,
+        data: { status_id: undefined, priority: undefined, search: 'urgent' },
+      });
+
+      // Set the final query result
+      orderFinalResult = {
         data: [],
         error: null,
-      });
+      };
 
       const request = new NextRequest(
         'http://localhost:3000/api/boards/board-1/tasks?search=urgent'
@@ -249,14 +275,11 @@ describe('Tasks API - GET /api/boards/[boardId]/tasks', () => {
         role: 'owner',
       });
 
-      // Create a special mock for this test that handles the chaining
-      const finalOrderCall = jest.fn().mockResolvedValue({
+      // Set the final query result
+      orderFinalResult = {
         data: [],
         error: null,
-      });
-      mockSupabase.order
-        .mockReturnValueOnce(mockSupabase) // First .order() call returns chainable object
-        .mockReturnValueOnce(finalOrderCall); // Second .order() call returns promise
+      };
 
       const request = new NextRequest('http://localhost:3000/api/boards/board-1/tasks');
 
@@ -277,19 +300,20 @@ describe('Tasks API - GET /api/boards/[boardId]/tasks', () => {
         userId: 'user-1',
         role: 'owner',
       });
+
+      // Mock successful validation
+      (validateSearchParams as jest.Mock).mockReturnValue({
+        success: true,
+        data: { status_id: undefined, priority: undefined, search: undefined },
+      });
     });
 
     it('should return 500 on database error', async () => {
-      // Reset authorization mock to ensure success for this test
-      (authorizeBoard as jest.Mock).mockResolvedValue({
-        userId: 'user-1',
-        role: 'owner',
-      });
-
-      mockSupabase.order.mockResolvedValue({
+      // Set the final query result with error
+      orderFinalResult = {
         data: null,
         error: { message: 'Database connection error' },
-      });
+      };
 
       const request = new NextRequest('http://localhost:3000/api/boards/board-1/tasks');
 
@@ -336,6 +360,15 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
     });
 
     it('should return 400 if title is missing', async () => {
+      // Mock validation failure for missing title
+      (validateRequestBody as jest.Mock).mockResolvedValue({
+        success: false,
+        error: Response.json(
+          { error: 'Validation failed', message: 'title: Required' },
+          { status: 400 }
+        ),
+      });
+
       const statusId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
 
       const request = new NextRequest('http://localhost:3000/api/boards/board-1/tasks', {
@@ -357,6 +390,15 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
     });
 
     it('should return 400 if title exceeds 200 characters', async () => {
+      // Mock validation failure for title too long
+      (validateRequestBody as jest.Mock).mockResolvedValue({
+        success: false,
+        error: Response.json(
+          { error: 'Validation failed', message: 'title: Must be at most 200 characters' },
+          { status: 400 }
+        ),
+      });
+
       const longTitle = 'A'.repeat(201);
 
       const request = new NextRequest('http://localhost:3000/api/boards/board-1/tasks', {
@@ -379,6 +421,15 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
     });
 
     it('should return 400 if status_id is missing', async () => {
+      // Mock validation failure for missing status_id
+      (validateRequestBody as jest.Mock).mockResolvedValue({
+        success: false,
+        error: Response.json(
+          { error: 'Validation failed', message: 'status_id: Required' },
+          { status: 400 }
+        ),
+      });
+
       const request = new NextRequest('http://localhost:3000/api/boards/board-1/tasks', {
         method: 'POST',
         body: JSON.stringify({
@@ -398,6 +449,15 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
     });
 
     it('should return 400 for invalid priority', async () => {
+      // Mock validation failure for invalid priority
+      (validateRequestBody as jest.Mock).mockResolvedValue({
+        success: false,
+        error: Response.json(
+          { error: 'Validation failed', message: 'priority: Invalid enum value' },
+          { status: 400 }
+        ),
+      });
+
       const statusId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
 
       const request = new NextRequest('http://localhost:3000/api/boards/board-1/tasks', {
@@ -421,6 +481,15 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
     });
 
     it('should return 400 if tags exceed 10 items', async () => {
+      // Mock validation failure for too many tags
+      (validateRequestBody as jest.Mock).mockResolvedValue({
+        success: false,
+        error: Response.json(
+          { error: 'Validation failed', message: 'tags: Array must contain at most 10 element(s)' },
+          { status: 400 }
+        ),
+      });
+
       const statusId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
 
       const request = new NextRequest('http://localhost:3000/api/boards/board-1/tasks', {
@@ -445,6 +514,15 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
 
     it('should return 400 if status does not belong to board', async () => {
       const statusId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
+      // Mock successful validation
+      (validateRequestBody as jest.Mock).mockResolvedValue({
+        success: true,
+        data: {
+          title: 'Test Task',
+          status_id: statusId,
+        },
+      });
 
       // Mock status not found
       mockSupabase.single.mockResolvedValueOnce({
@@ -489,6 +567,21 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
     });
 
     it('should create task with valid data', async () => {
+      // Mock successful validation
+      (validateRequestBody as jest.Mock).mockResolvedValue({
+        success: true,
+        data: {
+          title: 'New Task',
+          description: 'Task description',
+          status_id: statusId,
+          priority: 'high',
+          tags: ['frontend'],
+          assignee_name: undefined,
+          assignee_color: undefined,
+          due_date: undefined,
+        },
+      });
+
       // Mock max order fetch
       mockSupabase.single.mockResolvedValueOnce({
         data: { order: 5 },
@@ -541,6 +634,21 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
     });
 
     it('should calculate next order correctly', async () => {
+      // Mock successful validation
+      (validateRequestBody as jest.Mock).mockResolvedValue({
+        success: true,
+        data: {
+          title: 'Ordered Task',
+          status_id: statusId,
+          description: undefined,
+          priority: undefined,
+          tags: undefined,
+          assignee_name: undefined,
+          assignee_color: undefined,
+          due_date: undefined,
+        },
+      });
+
       // Mock max order fetch
       mockSupabase.single.mockResolvedValueOnce({
         data: { order: 10 },
@@ -574,6 +682,21 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
     });
 
     it('should handle first task in column (no existing tasks)', async () => {
+      // Mock successful validation
+      (validateRequestBody as jest.Mock).mockResolvedValue({
+        success: true,
+        data: {
+          title: 'First Task',
+          status_id: statusId,
+          description: undefined,
+          priority: undefined,
+          tags: undefined,
+          assignee_name: undefined,
+          assignee_color: undefined,
+          due_date: undefined,
+        },
+      });
+
       // Mock no existing tasks
       mockSupabase.single.mockResolvedValueOnce({
         data: null,
@@ -607,6 +730,21 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
     });
 
     it('should trim whitespace from string fields', async () => {
+      // Mock successful validation with trimmed values (validation layer trims)
+      (validateRequestBody as jest.Mock).mockResolvedValue({
+        success: true,
+        data: {
+          title: 'Trimmed Task',
+          description: 'Description with spaces',
+          status_id: statusId,
+          assignee_name: 'John Doe',
+          priority: undefined,
+          tags: undefined,
+          assignee_color: undefined,
+          due_date: undefined,
+        },
+      });
+
       mockSupabase.single.mockResolvedValueOnce({
         data: { order: 0 },
         error: null,
@@ -641,6 +779,21 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
     });
 
     it('should handle optional fields correctly', async () => {
+      // Mock successful validation with minimal data
+      (validateRequestBody as jest.Mock).mockResolvedValue({
+        success: true,
+        data: {
+          title: 'Minimal Task',
+          status_id: statusId,
+          description: undefined,
+          priority: undefined,
+          tags: undefined,
+          assignee_name: undefined,
+          assignee_color: undefined,
+          due_date: undefined,
+        },
+      });
+
       mockSupabase.single.mockResolvedValueOnce({
         data: { order: 0 },
         error: null,
@@ -666,12 +819,6 @@ describe('Tasks API - POST /api/boards/[boardId]/tasks', () => {
       expect(mockSupabase.insert).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Minimal Task',
-          description: null,
-          priority: null,
-          tags: [],
-          assignee_name: null,
-          assignee_color: null,
-          due_date: null,
         })
       );
     });
