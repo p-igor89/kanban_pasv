@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Paperclip, Upload, Loader2, Trash2, Download, File, Image, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
 
 interface Attachment {
   id: string;
@@ -69,7 +70,7 @@ export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProp
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}/attachments`, {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/tasks/${taskId}/attachments`, {
         method: 'POST',
         body: formData,
       });
@@ -102,7 +103,7 @@ export default function TaskAttachments({ boardId, taskId }: TaskAttachmentsProp
 
     setDeleting(true);
     try {
-      const response = await fetch(
+      const response = await fetchWithCsrf(
         `/api/boards/${boardId}/tasks/${taskId}/attachments?attachmentId=${deleteTarget.id}`,
         {
           method: 'DELETE',

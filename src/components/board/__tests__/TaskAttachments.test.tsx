@@ -5,6 +5,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 const mockFetch = jest.fn<Promise<any>, any[]>();
 global.fetch = mockFetch;
 
+// Mock fetchWithCsrf to use regular fetch
+jest.mock('@/lib/security/fetch-with-csrf', () => ({
+  fetchWithCsrf: (...args: Parameters<typeof fetch>) => mockFetch(...args),
+}));
+
 // Mock toast
 const mockToast = {
   success: jest.fn(),
