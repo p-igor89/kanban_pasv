@@ -155,14 +155,39 @@ e2e/                          # Playwright E2E tests
 ## User Flow
 
 ```mermaid
-flowchart LR
-    A[Register] --> B[Login]
-    B --> C[Boards]
-    C --> D[Create Board]
-    D --> E[Add Tasks]
-    E --> F[Collaborate]
-    F --> G[Track Progress]
+flowchart TD
+    A[🏠 Landing Page] --> B{Authenticated?}
+    B -->|No| C[🔐 Login/Register]
+    C --> D[📋 Boards List]
+    B -->|Yes| D
+
+    D --> E[➕ Create Board]
+    E --> F[📝 Select Template]
+    F --> D
+
+    D --> G[📋 Board Detail]
+    G --> H[🎯 Manage Tasks]
+    G --> I[👥 Invite Members]
+    G --> J[📊 View Activity]
+
+    H --> K[✏️ Edit Task]
+    K --> L[💬 Comments]
+    K --> M[📎 Attachments]
+    K --> N[🏷️ Tags & Priority]
+
+    D --> O[🔍 Global Search]
+    D --> P[🔔 Notifications]
+    D --> Q[⚙️ Settings]
 ```
+
+### What You Can Do
+
+| Area              | Actions                                                              |
+| ----------------- | -------------------------------------------------------------------- |
+| **Boards**        | Create, edit, delete, share with team, use templates                 |
+| **Tasks**         | Create, drag & drop between columns, set priority, due dates, tags   |
+| **Collaboration** | Invite members (Admin/Member/Viewer), comment on tasks, attach files |
+| **Organization**  | Global search (Ctrl+K), activity history, notifications              |
 
 ---
 
