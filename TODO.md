@@ -2,38 +2,38 @@
 
 ---
 
-## Supabase Configuration
+## Supabase Configuration Required
 
-### 1. Authentication Setup
+### 1. Email Confirmation (SMTP Setup)
 
-**Email Confirmation (Required)**
+1. Go to Supabase Dashboard → **Project Settings** → **Authentication**
+2. Scroll to **SMTP Settings**
+3. Enable **Custom SMTP**
+4. Configure with your email provider:
+   - **Resend**: Host `smtp.resend.com`, Port `465`, Username `resend`
+   - **SendGrid**: Host `smtp.sendgrid.net`, Port `587`
+   - **Mailgun**: Host `smtp.mailgun.org`, Port `587`
 
-1. Go to Supabase Dashboard → **Authentication** → **Providers**
-2. Click on **Email**
-3. Ensure **"Confirm email"** is enabled
-4. Configure SMTP for email delivery:
-   - Go to **Project Settings** → **Authentication** → **SMTP Settings**
-   - Enable **Custom SMTP**
-   - Configure with your email provider (Resend, SendGrid, etc.):
-     - Host: `smtp.resend.com` (for Resend)
-     - Port: `465`
-     - Username: `resend`
-     - Password: Your API key
-     - Sender email: `noreply@yourdomain.com`
+### 2. Google OAuth Setup
 
-**OAuth Providers (Optional)**
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create new project or select existing
+3. Go to **APIs & Services** → **Credentials**
+4. Create **OAuth 2.0 Client ID** (Web application)
+5. Add authorized redirect URI: `https://YOUR_PROJECT.supabase.co/auth/v1/callback`
+6. In Supabase: **Authentication** → **Providers** → **Google**
+7. Add Client ID and Client Secret
 
-1. Go to Supabase Dashboard → **Authentication** → **Providers**
-2. Enable **Google**:
-   - Create OAuth credentials at [Google Cloud Console](https://console.cloud.google.com)
-   - Add Client ID and Client Secret
-   - Add redirect URL: `https://your-project.supabase.co/auth/v1/callback`
-3. Enable **GitHub**:
-   - Create OAuth app at [GitHub Settings](https://github.com/settings/developers)
-   - Add Client ID and Client Secret
-   - Add callback URL: `https://your-project.supabase.co/auth/v1/callback`
+### 3. GitHub OAuth Setup
 
-### 2. Configure Auth URLs
+1. Go to [GitHub Settings → Developer Settings](https://github.com/settings/developers)
+2. Create **New OAuth App**
+3. Set Homepage URL: `https://kanban-pasv-sigma.vercel.app`
+4. Set Authorization callback URL: `https://YOUR_PROJECT.supabase.co/auth/v1/callback`
+5. In Supabase: **Authentication** → **Providers** → **GitHub**
+6. Add Client ID and Client Secret
+
+### 4. Configure Auth URLs
 
 1. Go to Supabase Dashboard → **Authentication** → **URL Configuration**
 2. Set:
@@ -42,42 +42,49 @@
 
 ---
 
-## Deployment Checklist
+## Feature Status
+
+### Completed (Code Ready)
 
 - [x] Application loads at production URL
 - [x] Environment variables configured on Vercel
 - [x] Database migrations applied
 - [x] Storage bucket `attachments` created
 - [x] RLS policies configured
-- [x] User login works (existing user)
+- [x] User login works (email/password)
+- [x] **Google/GitHub OAuth buttons** (needs Supabase config)
 - [x] Create boards
 - [x] Create tasks
 - [x] Drag and drop tasks between columns
 - [x] Dark/light theme toggle
 - [x] Global search (Ctrl+K)
 - [x] Settings page
-- [ ] User registration with email confirmation
-- [ ] Google/GitHub OAuth login
-- [ ] Board sharing (invite members)
-- [ ] Comments on tasks
-- [ ] File attachments
-- [ ] Activity history
-- [ ] Notifications page
-- [ ] PWA installation
+- [x] **Board sharing** (invite members)
+- [x] **Comments on tasks**
+- [x] **File attachments**
+- [x] **Activity history**
+- [x] **Notifications page**
+- [x] **PWA manifest** configured
+
+### Needs Supabase Configuration
+
+- [ ] User registration with email confirmation (needs SMTP)
+- [ ] Google OAuth login (needs Google Cloud credentials)
+- [ ] GitHub OAuth login (needs GitHub OAuth app)
 
 ---
 
 ## Test Coverage
 
-- [x] Unit tests for utilities (formatDate, validateEmail, etc.)
+**138 passing tests**
+
+- [x] Unit tests for utilities
 - [x] Unit tests for components (Header, GlobalSearch, BoardColumn, TaskDrawer)
 - [x] Unit tests for contexts (AuthContext)
 - [x] Unit tests for hooks (useDebounce, useLocalStorage, useRealtimeBoard)
-- [x] E2E tests for auth flows (login, register)
+- [x] E2E tests for auth flows
 - [x] E2E tests for responsive design
 - [x] E2E tests for keyboard navigation
-
-**Total: 138 passing tests**
 
 ---
 

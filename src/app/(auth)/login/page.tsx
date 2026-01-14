@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Loader2, Mail, Lock, LogIn } from 'lucide-react';
+import OAuthButtons from '@/components/OAuthButtons';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -110,6 +111,17 @@ export default function LoginPage() {
           )}
         </button>
       </form>
+
+      <div className="relative my-6">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">Or continue with</span>
+        </div>
+      </div>
+
+      <OAuthButtons />
 
       <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
         Don&apos;t have an account?{' '}
