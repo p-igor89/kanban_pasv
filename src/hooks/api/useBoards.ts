@@ -39,48 +39,34 @@ export function useBoards() {
 }
 
 /**
+ * Board detail response from API
+ */
+export interface BoardDetailResponse {
+  board: BoardWithData;
+  userRole?: string;
+}
+
+/**
  * Fetch a single board with all related data (statuses and tasks)
+ * Uses API endpoint to get board with user role
  */
 export function useBoard(boardId: string | null) {
   return useQuery({
     queryKey: queryKeys.boards.detail(boardId || ''),
-    queryFn: async (): Promise<BoardWithData | null> => {
+    queryFn: async (): Promise<BoardDetailResponse | null> => {
       if (!boardId) return null;
 
-      const supabase = createClient();
+      const response = await fetch(`/api/boards/${boardId}`);
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Board not found');
+        }
+        throw new Error('Failed to fetch board');
+      }
 
-      // Fetch board
-      const { data: board, error: boardError } = await supabase
-        .from('boards')
-        .select('*')
-        .eq('id', boardId)
-        .single();
-
-      if (boardError) throw boardError;
-
-      // Fetch statuses with tasks
-      const { data: statuses, error: statusesError } = await supabase
-        .from('statuses')
-        .select(
-          `
-          *,
-          tasks (*)
-        `
-        )
-        .eq('board_id', boardId)
-        .order('order', { ascending: true });
-
-      if (statusesError) throw statusesError;
-
-      return {
-        ...board,
-        statuses: statuses || [],
-      };
+      const data = await response.json();
+      return data;
     },
     enabled: !!boardId,
     staleTime: 1000 * 60 * 2, // 2 minutes

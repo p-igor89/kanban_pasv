@@ -70,7 +70,7 @@ export default function BoardsPage() {
   const fetchTemplates = async () => {
     setLoadingTemplates(true);
     try {
-      const response = await fetch('/api/boards/templates');
+      const response = await fetch('/api/templates');
       const data = await response.json();
 
       if (!response.ok) {

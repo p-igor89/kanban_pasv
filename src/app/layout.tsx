@@ -8,6 +8,7 @@ import PageSuspenseFallback from '@/components/PageSuspenseFallback';
 import { AuthProvider } from '@/contexts/AuthContext';
 import ServiceWorkerProvider from '@/components/ServiceWorkerProvider';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { CsrfProvider } from '@/components/providers/CsrfProvider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -102,13 +103,15 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
           <QueryProvider>
-            <AuthProvider>
-              <main className="scroll-smooth">
-                <Suspense fallback={<PageSuspenseFallback />}>{children}</Suspense>
-              </main>
-              <ToastProvider />
-              <ServiceWorkerProvider />
-            </AuthProvider>
+            <CsrfProvider>
+              <AuthProvider>
+                <main className="scroll-smooth">
+                  <Suspense fallback={<PageSuspenseFallback />}>{children}</Suspense>
+                </main>
+                <ToastProvider />
+                <ServiceWorkerProvider />
+              </AuthProvider>
+            </CsrfProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import {
   DndContext,
   closestCorners,
@@ -29,7 +30,7 @@ interface BoardColumnsProps {
   onDeleteStatus?: (statusId: string) => void;
 }
 
-export function BoardColumns({
+function BoardColumnsComponent({
   board,
   canEdit,
   sensors,
@@ -86,3 +87,7 @@ export function BoardColumns({
     </div>
   );
 }
+
+// Memoize component to prevent unnecessary re-renders
+// Only re-render when board data, sensors, or callbacks actually change
+export const BoardColumns = memo(BoardColumnsComponent);

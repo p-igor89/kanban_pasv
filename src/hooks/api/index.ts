@@ -2,7 +2,14 @@
  * Barrel export for React Query API hooks
  */
 
-export { useBoards, useBoard, useCreateBoard, useUpdateBoard, useDeleteBoard } from './useBoards';
+export {
+  useBoards,
+  useBoard,
+  useCreateBoard,
+  useUpdateBoard,
+  useDeleteBoard,
+  type BoardDetailResponse,
+} from './useBoards';
 
 export {
   useTasks,
@@ -12,3 +19,14 @@ export {
   useDeleteTask,
   useReorderTasks,
 } from './useTasks';
+
+export {
+  useCreateTaskMutation,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
+  useMoveTaskMutation,
+  useReorderTasksMutation,
+  useCreateStatusMutation,
+  useUpdateStatusMutation,
+  useDeleteStatusMutation,
+} from './useBoardMutations';

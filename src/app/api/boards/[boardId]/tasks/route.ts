@@ -7,6 +7,7 @@ import {
   validateSearchParams,
 } from '@/lib/validation';
 import { sanitizeSearchInput, enforceRateLimit, rateLimitConfigs } from '@/lib/security';
+import { authorizeBoard, handleAuthError } from '@/lib/security/authMiddleware';
 
 type RouteParams = { params: Promise<{ boardId: string }> };
 
@@ -14,21 +15,14 @@ type RouteParams = { params: Promise<{ boardId: string }> };
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { boardId } = await params;
-    const supabase = await createClient();
     const { searchParams } = new URL(request.url);
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Authorize user for task read access
+    const { userId } = await authorizeBoard(boardId, 'task:read');
 
     // Apply rate limiting for read operations
     try {
-      enforceRateLimit(user.id, rateLimitConfigs.api.read, 'tasks:read');
+      enforceRateLimit(userId, rateLimitConfigs.api.read, 'tasks:read');
     } catch (error) {
       if ((error as Error & { code?: string }).code === 'RATE_LIMIT_EXCEEDED') {
         return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
@@ -36,17 +30,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       throw error;
     }
 
-    // Verify board belongs to user
-    const { data: board } = await supabase
-      .from('boards')
-      .select('id')
-      .eq('id', boardId)
-      .eq('user_id', user.id)
-      .single();
-
-    if (!board) {
-      return NextResponse.json({ error: 'Board not found' }, { status: 404 });
-    }
+    const supabase = await createClient();
 
     // Validate search params using Zod
     const validation = validateSearchParams(TaskListQuerySchema, searchParams);
@@ -87,6 +71,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ tasks });
   } catch (error) {
+    // Check if it's an auth error
+    if (
+      error &&
+      typeof error === 'object' &&
+      'name' in error &&
+      (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')
+    ) {
+      return handleAuthError(error);
+    }
+
+    // Other errors
     console.error('Error in GET /api/boards/[boardId]/tasks:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
@@ -96,20 +91,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { boardId } = await params;
-    const supabase = await createClient();
 
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Authorize user for task creation
+    const { userId } = await authorizeBoard(boardId, 'task:create');
 
     // Apply rate limiting for write operations
     try {
-      enforceRateLimit(user.id, rateLimitConfigs.api.write, 'tasks:write');
+      enforceRateLimit(userId, rateLimitConfigs.api.write, 'tasks:write');
     } catch (error) {
       if ((error as Error & { code?: string }).code === 'RATE_LIMIT_EXCEEDED') {
         return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
@@ -117,17 +105,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       throw error;
     }
 
-    // Verify board belongs to user
-    const { data: board } = await supabase
-      .from('boards')
-      .select('id')
-      .eq('id', boardId)
-      .eq('user_id', user.id)
-      .single();
-
-    if (!board) {
-      return NextResponse.json({ error: 'Board not found' }, { status: 404 });
-    }
+    const supabase = await createClient();
 
     // Validate request body using Zod schema
     const validation = await validateRequestBody(CreateTaskSchema, request);
@@ -193,6 +171,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({ task }, { status: 201 });
   } catch (error) {
+    // Check if it's an auth error
+    if (
+      error &&
+      typeof error === 'object' &&
+      'name' in error &&
+      (error.name === 'AuthenticationError' || error.name === 'AuthorizationError')
+    ) {
+      return handleAuthError(error);
+    }
+
+    // Other errors
     console.error('Error in POST /api/boards/[boardId]/tasks:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

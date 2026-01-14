@@ -1,256 +1,266 @@
 'use client';
 
-import { useEffect, useCallback, useState, lazy, Suspense } from 'react';
+import { useCallback, useState, lazy, Suspense, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 
 // Types
-import type { Task } from '@/types/board';
+import type { Task, Status, BoardMemberRole } from '@/types/board';
 
-// Hooks
-import { useBoardState } from '@/hooks/useBoardState';
+// React Query Hooks
+import {
+  useBoard,
+  useCreateTaskMutation,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
+  useMoveTaskMutation,
+  useReorderTasksMutation,
+  useCreateStatusMutation,
+  useUpdateStatusMutation,
+  useDeleteStatusMutation,
+} from '@/hooks/api';
+
+// Other Hooks
 import { useDragAndDrop } from '@/hooks/useDragAndDrop';
 import { useRealtimeBoardState } from '@/hooks/useRealtimeBoard';
+import { usePermissions } from '@/hooks/usePermissions';
 
 // Components
 import { BoardHeader } from '@/components/board/BoardHeader';
 import { BoardColumns } from '@/components/board/BoardColumns';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
-// Lazy-loaded modals for better initial load performance
+// Lazy-loaded modals
 const CreateTaskModal = lazy(() => import('@/components/board/CreateTaskModal'));
 const TaskDrawer = lazy(() => import('@/components/board/TaskDrawer'));
 const StatusModal = lazy(() => import('@/components/board/StatusModal'));
 const BoardMembersModal = lazy(() => import('@/components/board/BoardMembersModal'));
 
-export default function BoardPage() {
+export default function BoardPageWithReactQuery() {
   const params = useParams();
   const router = useRouter();
   const boardId = params.boardId as string;
 
-  // Centralized state management
-  const { state, actions } = useBoardState();
+  // React Query - fetch board data
+  const { data: boardData, isLoading, error, refetch } = useBoard(boardId);
 
-  // Local state for status deletion
+  // React Query Mutations
+  const createTaskMutation = useCreateTaskMutation(boardId);
+  const updateTaskMutation = useUpdateTaskMutation(boardId);
+  const deleteTaskMutation = useDeleteTaskMutation(boardId);
+  const moveTaskMutation = useMoveTaskMutation(boardId);
+  const reorderTasksMutation = useReorderTasksMutation(boardId);
+  const createStatusMutation = useCreateStatusMutation(boardId);
+  const updateStatusMutation = useUpdateStatusMutation(boardId);
+  const deleteStatusMutation = useDeleteStatusMutation(boardId);
+
+  // Local UI state
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [selectedStatusId, setSelectedStatusId] = useState<string | null>(null);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [editingStatus, setEditingStatus] = useState<Status | null>(null);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [deletingStatusId, setDeletingStatusId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  const board = boardData?.board || null;
+  const userRole = (boardData?.userRole as BoardMemberRole) || 'viewer';
+
+  // Permissions
+  const permissions = usePermissions({ role: userRole });
 
   // Drag and drop logic
   const dragAndDrop = useDragAndDrop({
-    board: state.board,
+    board,
     onReorder: (statusId, tasks) => {
-      actions.reorderTasks(statusId, tasks);
-      // Persist to server
-      persistTaskReorder(tasks);
+      reorderTasksMutation.mutate(tasks, {
+        onError: () => {
+          toast.error('Failed to save task order');
+          refetch();
+        },
+      });
     },
     onMove: (taskId, newStatusId, newOrder) => {
-      actions.moveTask(taskId, newStatusId, newOrder);
-      // Persist to server
-      persistTaskMove(taskId, newStatusId, newOrder);
+      moveTaskMutation.mutate(
+        { taskId, newStatusId, newOrder },
+        {
+          onError: () => {
+            toast.error('Failed to move task');
+            refetch();
+          },
+        }
+      );
     },
   });
 
   // Subscribe to realtime updates
-  useRealtimeBoardState(state.board, actions.setBoard);
+  useRealtimeBoardState(board, () => {
+    refetch();
+  });
 
-  /**
-   * Fetch board data on mount
-   */
-  const fetchBoard = useCallback(async () => {
-    try {
-      actions.setLoading(true);
-      const response = await fetch(`/api/boards/${boardId}`);
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          router.push('/boards');
-          return;
-        }
-        throw new Error('Failed to fetch board');
-      }
-
-      const data = await response.json();
-      actions.setBoard(data.board);
-
-      if (data.userRole) {
-        actions.setUserRole(data.userRole);
-      }
-    } catch (error) {
-      console.error('Error fetching board:', error);
-      actions.setError(error as Error);
-      toast.error('Failed to load board');
-    }
-  }, [boardId, router, actions]);
-
+  // Handle 404 error - redirect to boards list
   useEffect(() => {
-    fetchBoard();
-  }, [fetchBoard]);
+    if (error && error.message === 'Board not found') {
+      toast.error('Board not found');
+      router.push('/boards');
+    }
+  }, [error, router]);
 
   /**
    * Task operations
    */
-  const handleCreateTask = async (data: {
-    title: string;
-    description?: string;
-    status_id: string;
-    priority?: string;
-    due_date?: string;
-  }) => {
-    try {
-      const response = await fetch(`/api/boards/${boardId}/tasks`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+  const handleCreateTask = useCallback(
+    async (data: {
+      title: string;
+      description?: string;
+      status_id: string;
+      priority?: string;
+      due_date?: string;
+    }) => {
+      return new Promise<void>((resolve, reject) => {
+        createTaskMutation.mutate(data, {
+          onSuccess: () => {
+            toast.success('Task created');
+            setIsTaskModalOpen(false);
+            setSelectedStatusId(null);
+            resolve();
+          },
+          onError: (error) => {
+            toast.error('Failed to create task');
+            reject(error);
+          },
+        });
       });
+    },
+    [createTaskMutation]
+  );
 
-      if (!response.ok) throw new Error('Failed to create task');
-
-      const { task } = await response.json();
-      actions.addTask(task);
-      actions.closeTaskModal();
-      toast.success('Task created');
-    } catch {
-      toast.error('Failed to create task');
-    }
-  };
-
-  const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
-    try {
-      const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+  const handleUpdateTask = useCallback(
+    async (taskId: string, updates: Partial<Task>) => {
+      return new Promise<void>((resolve, reject) => {
+        updateTaskMutation.mutate(
+          { taskId, updates },
+          {
+            onSuccess: () => {
+              toast.success('Task updated');
+              resolve();
+            },
+            onError: (error) => {
+              toast.error('Failed to update task');
+              reject(error);
+            },
+          }
+        );
       });
+    },
+    [updateTaskMutation]
+  );
 
-      if (!response.ok) throw new Error('Failed to update task');
-
-      const { task } = await response.json();
-      actions.updateTask(taskId, task);
-      toast.success('Task updated');
-    } catch {
-      toast.error('Failed to update task');
-    }
-  };
-
-  const handleDeleteTask = async (taskId: string) => {
-    try {
-      const response = await fetch(`/api/boards/${boardId}/tasks/${taskId}`, {
-        method: 'DELETE',
+  const handleDeleteTask = useCallback(
+    (taskId: string) => {
+      deleteTaskMutation.mutate(taskId, {
+        onSuccess: () => {
+          toast.success('Task deleted');
+          setActiveTaskId(null);
+        },
+        onError: () => {
+          toast.error('Failed to delete task');
+        },
       });
-
-      if (!response.ok) throw new Error('Failed to delete task');
-
-      actions.deleteTask(taskId);
-      actions.closeDrawer();
-      toast.success('Task deleted');
-    } catch {
-      toast.error('Failed to delete task');
-    }
-  };
-
-  /**
-   * Persist task reorder to server
-   */
-  const persistTaskReorder = async (tasks: Task[]) => {
-    try {
-      await fetch(`/api/boards/${boardId}/tasks/reorder`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tasks: tasks.map((t) => ({ id: t.id, order: t.order })),
-        }),
-      });
-    } catch {
-      toast.error('Failed to save task order');
-      fetchBoard(); // Refetch on error
-    }
-  };
-
-  /**
-   * Persist task move to server
-   */
-  const persistTaskMove = async (taskId: string, newStatusId: string, newOrder: number) => {
-    try {
-      await fetch(`/api/boards/${boardId}/tasks/${taskId}/move`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status_id: newStatusId,
-          order: newOrder,
-        }),
-      });
-    } catch {
-      toast.error('Failed to move task');
-      fetchBoard(); // Refetch on error
-    }
-  };
+    },
+    [deleteTaskMutation]
+  );
 
   /**
    * Status operations
    */
-  const handleCreateOrUpdateStatus = async (data: { name: string; color: string }) => {
-    try {
-      const url = state.editingStatus
-        ? `/api/boards/${boardId}/statuses/${state.editingStatus.id}`
-        : `/api/boards/${boardId}/statuses`;
-      const method = state.editingStatus ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+  const handleCreateOrUpdateStatus = useCallback(
+    async (data: { name: string; color: string }) => {
+      return new Promise<void>((resolve, reject) => {
+        if (editingStatus) {
+          updateStatusMutation.mutate(
+            { statusId: editingStatus.id, data },
+            {
+              onSuccess: () => {
+                toast.success('Status updated');
+                setIsStatusModalOpen(false);
+                setEditingStatus(null);
+                resolve();
+              },
+              onError: (error) => {
+                toast.error('Failed to update status');
+                reject(error);
+              },
+            }
+          );
+        } else {
+          createStatusMutation.mutate(data, {
+            onSuccess: () => {
+              toast.success('Status created');
+              setIsStatusModalOpen(false);
+              resolve();
+            },
+            onError: (error) => {
+              toast.error('Failed to create status');
+              reject(error);
+            },
+          });
+        }
       });
+    },
+    [editingStatus, updateStatusMutation, createStatusMutation]
+  );
 
-      if (!response.ok) throw new Error('Failed to save status');
-
-      await fetchBoard(); // Refetch board to get updated statuses
-      actions.closeStatusModal();
-      toast.success(`Status ${state.editingStatus ? 'updated' : 'created'}`);
-    } catch {
-      toast.error('Failed to save status');
-    }
-  };
-
-  const handleDeleteStatus = async () => {
+  const handleDeleteStatus = useCallback(() => {
     if (!deletingStatusId) return;
 
-    try {
-      setIsDeleting(true);
-      const response = await fetch(`/api/boards/${boardId}/statuses/${deletingStatusId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        if (response.status === 409) {
-          toast.error(data.error || 'Cannot delete status with tasks');
-        } else {
-          throw new Error('Failed to delete status');
-        }
-        return;
-      }
-
-      await fetchBoard(); // Refetch board to get updated statuses
-      setDeletingStatusId(null);
-      toast.success('Status deleted successfully');
-    } catch (error) {
-      console.error('Error deleting status:', error);
-      toast.error('Failed to delete status');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+    deleteStatusMutation.mutate(deletingStatusId, {
+      onSuccess: () => {
+        toast.success('Status deleted');
+        setDeletingStatusId(null);
+      },
+      onError: (error) => {
+        toast.error(error.message || 'Failed to delete status');
+        setDeletingStatusId(null);
+      },
+    });
+  }, [deletingStatusId, deleteStatusMutation]);
 
   /**
-   * Permissions
+   * Modal handlers
    */
-  const canEdit = ['owner', 'admin', 'member'].includes(state.currentUserRole);
+  const handleOpenTaskModal = useCallback((statusId: string) => {
+    setSelectedStatusId(statusId);
+    setIsTaskModalOpen(true);
+  }, []);
+
+  const handleOpenTaskDrawer = useCallback((task: Task) => {
+    setActiveTaskId(task.id);
+  }, []);
+
+  const handleOpenStatusModal = useCallback((status?: Status) => {
+    if (status) {
+      setEditingStatus(status);
+    }
+    setIsStatusModalOpen(true);
+  }, []);
+
+  /**
+   * Permission-based UI checks
+   */
+  const canEdit = permissions.canEditTask || permissions.canCreateTask || permissions.canDeleteTask;
+
+  /**
+   * Get active task for drawer
+   */
+  const activeTask =
+    board?.statuses.flatMap((s) => s.tasks).find((t) => t.id === activeTaskId) || null;
 
   /**
    * Loading state
    */
-  if (state.loading) {
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -261,10 +271,18 @@ export default function BoardPage() {
   /**
    * Error state
    */
-  if (state.error || !state.board) {
+  if (error || !board) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <p className="text-gray-500">Failed to load board</p>
+        <div className="text-center">
+          <p className="text-gray-500">Failed to load board</p>
+          <button
+            onClick={() => refetch()}
+            className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
@@ -273,82 +291,89 @@ export default function BoardPage() {
     <div className="flex h-screen flex-col bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <BoardHeader
-        board={state.board}
+        board={board}
         canEdit={canEdit}
         onBack={() => router.push('/boards')}
-        onOpenMembers={actions.openMembersModal}
-        onOpenStatusModal={actions.openStatusModal}
+        onOpenMembers={() => setIsMembersModalOpen(true)}
+        onOpenStatusModal={() => handleOpenStatusModal()}
       />
 
       {/* Board Columns */}
       <BoardColumns
-        board={state.board}
+        board={board}
         canEdit={canEdit}
         sensors={dragAndDrop.sensors}
         activeTask={dragAndDrop.activeTask}
         onDragStart={dragAndDrop.handleDragStart}
         onDragOver={dragAndDrop.handleDragOver}
         onDragEnd={dragAndDrop.handleDragEnd}
-        onTaskClick={actions.openDrawer}
+        onTaskClick={handleOpenTaskDrawer}
         onTaskDelete={handleDeleteTask}
-        onAddTask={actions.openTaskModal}
-        onEditStatus={actions.openStatusModal}
+        onAddTask={handleOpenTaskModal}
+        onEditStatus={handleOpenStatusModal}
         onDeleteStatus={setDeletingStatusId}
       />
 
-      {/* Modals - Lazy loaded with Suspense for better performance */}
+      {/* Modals - Lazy loaded with Suspense */}
       <Suspense fallback={null}>
-        <CreateTaskModal
-          isOpen={state.isTaskModalOpen}
-          statuses={state.board.statuses}
-          defaultStatusId={state.defaultStatusId}
-          onClose={actions.closeTaskModal}
-          onSubmit={handleCreateTask}
-        />
-      </Suspense>
+        {isTaskModalOpen && (
+          <CreateTaskModal
+            isOpen={isTaskModalOpen}
+            onClose={() => {
+              setIsTaskModalOpen(false);
+              setSelectedStatusId(null);
+            }}
+            onSubmit={handleCreateTask}
+            statuses={board.statuses}
+            defaultStatusId={selectedStatusId}
+          />
+        )}
 
-      <Suspense fallback={null}>
-        <TaskDrawer
-          task={state.selectedTask}
-          isOpen={state.isDrawerOpen}
-          boardId={boardId}
-          statuses={state.board.statuses}
-          onClose={actions.closeDrawer}
-          onUpdate={handleUpdateTask}
-          onDelete={handleDeleteTask}
-        />
-      </Suspense>
+        {activeTask && (
+          <TaskDrawer
+            isOpen={!!activeTask}
+            task={activeTask}
+            statuses={board.statuses}
+            boardId={boardId}
+            onClose={() => setActiveTaskId(null)}
+            onUpdate={handleUpdateTask}
+            onDelete={handleDeleteTask}
+          />
+        )}
 
-      <Suspense fallback={null}>
-        <StatusModal
-          isOpen={state.isStatusModalOpen}
-          status={state.editingStatus}
-          onClose={actions.closeStatusModal}
-          onSubmit={handleCreateOrUpdateStatus}
-        />
-      </Suspense>
+        {isStatusModalOpen && (
+          <StatusModal
+            isOpen={isStatusModalOpen}
+            onClose={() => {
+              setIsStatusModalOpen(false);
+              setEditingStatus(null);
+            }}
+            onSubmit={handleCreateOrUpdateStatus}
+            status={editingStatus}
+          />
+        )}
 
-      <Suspense fallback={null}>
-        <BoardMembersModal
-          isOpen={state.isMembersModalOpen}
-          boardId={boardId}
-          currentUserRole={state.currentUserRole}
-          onClose={actions.closeMembersModal}
-        />
+        {isMembersModalOpen && (
+          <BoardMembersModal
+            isOpen={isMembersModalOpen}
+            boardId={boardId}
+            onClose={() => setIsMembersModalOpen(false)}
+            currentUserRole={userRole}
+          />
+        )}
       </Suspense>
 
       {/* Delete Status Confirmation */}
       <ConfirmDialog
         isOpen={!!deletingStatusId}
-        onClose={() => setDeletingStatusId(null)}
-        onConfirm={handleDeleteStatus}
         title="Delete Status"
-        message="Are you sure you want to delete this status? This action cannot be undone. All tasks must be moved or deleted first."
+        message="Are you sure you want to delete this status? This action cannot be undone if the status has no tasks."
         confirmText="Delete"
         cancelText="Cancel"
+        onConfirm={handleDeleteStatus}
+        onClose={() => setDeletingStatusId(null)}
+        loading={deleteStatusMutation.isPending}
         variant="danger"
-        icon="delete"
-        loading={isDeleting}
       />
     </div>
   );

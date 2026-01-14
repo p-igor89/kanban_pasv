@@ -5,8 +5,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/react-query/queryKeys';
-import { createClient } from '@/lib/supabase/client';
-import type { BoardWithData } from '@/types/board';
+import type { BoardDetailResponse } from '@/hooks/api';
 
 export function usePrefetchBoard() {
   const queryClient = useQueryClient();
@@ -25,41 +24,15 @@ export function usePrefetchBoard() {
     // Prefetch board with statuses and tasks
     await queryClient.prefetchQuery({
       queryKey: queryKeys.boards.detail(boardId),
-      queryFn: async (): Promise<BoardWithData | null> => {
-        const supabase = createClient();
+      queryFn: async (): Promise<BoardDetailResponse | null> => {
+        const response = await fetch(`/api/boards/${boardId}`);
 
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
+        if (!response.ok) {
+          throw new Error('Failed to fetch board');
+        }
 
-        // Fetch board
-        const { data: board, error: boardError } = await supabase
-          .from('boards')
-          .select('*')
-          .eq('id', boardId)
-          .single();
-
-        if (boardError) throw boardError;
-
-        // Fetch statuses with tasks
-        const { data: statuses, error: statusesError } = await supabase
-          .from('statuses')
-          .select(
-            `
-            *,
-            tasks (*)
-          `
-          )
-          .eq('board_id', boardId)
-          .order('order', { ascending: true });
-
-        if (statusesError) throw statusesError;
-
-        return {
-          ...board,
-          statuses: statuses || [],
-        };
+        const data = await response.json();
+        return data;
       },
       staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     });
