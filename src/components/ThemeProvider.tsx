@@ -33,13 +33,31 @@ export default function ThemeProvider({ children }: ThemeProviderProps) {
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     if (savedTheme) {
       setTheme(savedTheme);
+      // Immediately apply dark class to prevent flash
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } else {
+      // Default is dark, ensure class is set
+      document.documentElement.classList.add('dark');
     }
   }, []);
 
   // Sync theme to DOM and localStorage
   useEffect(() => {
     if (mounted) {
+      // Set data-theme attribute for CSS variables
       document.documentElement.setAttribute('data-theme', theme);
+
+      // Add/remove 'dark' class for Tailwind dark: classes
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+
       localStorage.setItem('theme', theme);
     }
   }, [theme, mounted]);
