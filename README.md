@@ -8,7 +8,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green?logo=supabase)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
-[![Tests](https://img.shields.io/badge/Tests-138%20passing-brightgreen)](./src)
+[![Tests](https://img.shields.io/badge/Tests-417%20passing-brightgreen)](./src)
 
 [Live Demo](https://kanban-pasv-sigma.vercel.app) · [Documentation](./DEPLOYMENT.md) · [Architecture](./ARCHITECTURE.md)
 
