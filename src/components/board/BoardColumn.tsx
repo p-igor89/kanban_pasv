@@ -34,9 +34,10 @@ function BoardColumn({
   return (
     <section
       className={`
-        flex flex-col w-72 min-w-72 rounded-xl overflow-hidden
+        flex flex-col w-[280px] sm:w-72 min-w-[280px] sm:min-w-72 rounded-xl overflow-hidden
         bg-gray-100 dark:bg-gray-800/50
         transition-all duration-200
+        snap-center sm:snap-align-none
         ${isOver ? 'ring-2 ring-blue-400 ring-offset-2 scale-[1.01]' : ''}
       `}
     >

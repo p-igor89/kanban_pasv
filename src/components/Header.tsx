@@ -52,17 +52,31 @@ export default function Header() {
               <span className="text-xl font-bold text-gray-900 dark:text-white">KanbanPro</span>
             </Link>
 
-            <div className="flex items-center gap-2">
+            {/* Search Bar - takes available space */}
+            {user && (
+              <div className="flex-1 max-w-xl mx-4 hidden sm:block">
+                <button
+                  onClick={() => setIsSearchOpen(true)}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors border border-gray-200 dark:border-gray-600"
+                >
+                  <Search className="h-4 w-4 flex-shrink-0" />
+                  <span className="flex-1 text-left">Search tasks...</span>
+                  <kbd className="hidden lg:inline px-2 py-1 text-xs bg-gray-200 dark:bg-gray-600 rounded font-mono">
+                    Ctrl+K
+                  </kbd>
+                </button>
+              </div>
+            )}
+
+            <div className="flex items-center gap-1 sm:gap-2">
+              {/* Mobile search button */}
               {user && (
                 <button
                   onClick={() => setIsSearchOpen(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  className="sm:hidden p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  aria-label="Search"
                 >
-                  <Search className="h-4 w-4" />
-                  <span className="hidden sm:inline">Search</span>
-                  <kbd className="hidden md:inline px-1.5 py-0.5 text-xs bg-gray-200 dark:bg-gray-600 rounded">
-                    Ctrl+K
-                  </kbd>
+                  <Search className="h-5 w-5" />
                 </button>
               )}
 

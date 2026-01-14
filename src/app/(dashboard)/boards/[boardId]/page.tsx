@@ -396,48 +396,53 @@ export default function BoardPage() {
   }
 
   return (
-    <div className="h-full p-4 sm:p-6">
+    <div className="h-full p-3 sm:p-4 lg:p-6">
       {/* Header */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="mb-4 sm:mb-6 flex flex-col gap-3 sm:gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <Link
             href="/boards"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{board.name}</h1>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white truncate">
+              {board.name}
+            </h1>
             {board.description && (
-              <p className="text-sm text-gray-600 dark:text-gray-400">{board.description}</p>
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
+                {board.description}
+              </p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-3 px-3 sm:mx-0 sm:px-0 sm:overflow-visible">
           <button
             onClick={() => setIsMembersModalOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors whitespace-nowrap flex-shrink-0"
           >
             <Users className="h-4 w-4" />
-            Members
+            <span className="hidden xs:inline">Members</span>
           </button>
           <button
             onClick={() => {
               setEditingStatus(null);
               setIsStatusModalOpen(true);
             }}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors whitespace-nowrap flex-shrink-0"
           >
             <Settings className="h-4 w-4" />
-            Add Column
+            <span className="hidden xs:inline">Add Column</span>
           </button>
           <button
             onClick={() => openCreateTaskModal()}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap flex-shrink-0 ml-auto"
           >
-            <Plus className="h-5 w-5" />
-            New Task
+            <Plus className="h-4 sm:h-5 w-4 sm:w-5" />
+            <span className="hidden sm:inline">New Task</span>
+            <span className="sm:hidden">Task</span>
           </button>
         </div>
       </div>
@@ -450,7 +455,7 @@ export default function BoardPage() {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-4 -mx-3 px-3 sm:mx-0 sm:px-0 snap-x snap-mandatory sm:snap-none scroll-smooth">
           {board.statuses.map((status) => (
             <BoardColumn
               key={status.id}
@@ -476,10 +481,10 @@ export default function BoardPage() {
               setEditingStatus(null);
               setIsStatusModalOpen(true);
             }}
-            className="flex-shrink-0 w-72 h-32 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="flex-shrink-0 w-[280px] sm:w-72 h-32 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors snap-center sm:snap-align-none"
           >
             <Plus className="h-6 w-6" />
-            Add Column
+            <span className="text-sm">Add Column</span>
           </button>
         </div>
 

@@ -210,18 +210,18 @@ export default function BoardsPage() {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Boards</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">My Boards</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mt-1">
             {boards.length} {boards.length === 1 ? 'board' : 'boards'}
           </p>
         </div>
 
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 sm:py-2 rounded-lg font-medium transition-colors w-full sm:w-auto"
         >
           <Plus className="h-5 w-5" />
           New Board
@@ -276,24 +276,30 @@ export default function BoardsPage() {
                   </div>
                 </Link>
 
-                <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="px-4 sm:px-6 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
                     <div className="flex items-center gap-1 text-xs text-gray-400">
-                      <Calendar className="h-3 w-3" />
-                      {formatDate(board.created_at)}
+                      <Calendar className="h-3 w-3 flex-shrink-0" />
+                      <span className="hidden xs:inline">{formatDate(board.created_at)}</span>
+                      <span className="xs:hidden">
+                        {new Date(board.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </span>
                     </div>
                     <span
                       className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${roleColors[board.role]}`}
                     >
                       <RoleIcon className="h-3 w-3" />
-                      {roleLabels[board.role]}
+                      <span className="hidden sm:inline">{roleLabels[board.role]}</span>
                     </span>
                   </div>
 
                   {board.role === 'owner' && (
                     <button
                       onClick={() => handleDeleteClick(board.id, board.name)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors"
+                      className="p-2 sm:p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors flex-shrink-0"
                       title="Delete board"
                     >
                       <Trash2 className="h-4 w-4" />

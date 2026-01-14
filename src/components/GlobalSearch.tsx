@@ -95,9 +95,9 @@ export default function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-4 sm:pt-20 bg-black/50">
       <div
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl mx-2 sm:mx-4 overflow-hidden"
         onKeyDown={handleKeyDown}
       >
         {/* Search Input */}
