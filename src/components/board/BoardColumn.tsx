@@ -2,8 +2,9 @@
 
 import { memo, useState, useId } from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { MoreHorizontal, Plus, Pencil, Trash2 } from 'lucide-react';
+import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { MoreHorizontal, Plus, Pencil, Trash2, GripVertical } from 'lucide-react';
 import { Status, Task } from '@/types/board';
 import BoardTaskCard from './BoardTaskCard';
 
@@ -27,22 +28,46 @@ function BoardColumn({
   onDeleteStatus,
 }: BoardColumnProps) {
   const [showMenu, setShowMenu] = useState(false);
-  const { setNodeRef, isOver } = useDroppable({ id: status.id });
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({ id: status.id });
   const headingId = useId();
   const menuId = useId();
+
+  // Make column sortable
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: `column-${status.id}`,
+    data: {
+      type: 'column',
+      status,
+    },
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   const taskIds = tasks.map((task) => task.id);
 
   return (
     <section
+      ref={setSortableRef}
       role="region"
       aria-labelledby={headingId}
+      style={style}
       className={`
         flex flex-col w-[280px] sm:w-72 min-w-[280px] sm:min-w-72 rounded-xl overflow-hidden
         bg-gray-100 dark:bg-gray-800/50
         transition-all duration-200
         snap-center sm:snap-align-none
         ${isOver ? 'ring-2 ring-blue-400 ring-offset-2 scale-[1.01]' : ''}
+        ${isDragging ? 'opacity-50 shadow-2xl z-50' : ''}
       `}
     >
       {/* Header */}
@@ -51,6 +76,15 @@ function BoardColumn({
         style={{ backgroundColor: status.color }}
       >
         <div className="flex items-center gap-2">
+          {/* Drag handle */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="p-1 hover:bg-white/20 rounded cursor-grab active:cursor-grabbing transition-colors touch-none"
+            aria-label={`Drag to reorder ${status.name} column`}
+          >
+            <GripVertical className="h-4 w-4 text-white" aria-hidden="true" />
+          </button>
           <h2 id={headingId} className="font-semibold text-white">
             {status.name}
           </h2>
@@ -117,7 +151,7 @@ function BoardColumn({
 
       {/* Tasks */}
       <div
-        ref={setNodeRef}
+        ref={setDroppableRef}
         role="list"
         aria-label={`Tasks in ${status.name}`}
         className="flex-1 p-2 space-y-2 min-h-[200px] overflow-y-auto"

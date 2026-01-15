@@ -444,3 +444,63 @@ export function useDeleteStatusMutation(boardId: string) {
     },
   });
 }
+
+/**
+ * Reorder statuses (columns) with optimistic update
+ */
+export function useReorderStatusesMutation(boardId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (statuses: Array<{ id: string; order: number }>): Promise<void> => {
+      const response = await fetchWithCsrf(`/api/boards/${boardId}/statuses/reorder`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statuses }),
+      });
+
+      if (!response.ok) throw new Error('Failed to reorder statuses');
+    },
+    onMutate: async (reorderedStatuses) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.boards.detail(boardId) });
+
+      const previousData = queryClient.getQueryData<BoardDetailResponse>(
+        queryKeys.boards.detail(boardId)
+      );
+
+      // Optimistically reorder statuses
+      updateBoardCache(queryClient, boardId, (old) => {
+        if (!old) return old;
+
+        // Create a map of new orders
+        const orderMap = new Map(reorderedStatuses.map((s) => [s.id, s.order]));
+
+        // Update and sort statuses
+        const updatedStatuses = old.board.statuses
+          .map((status) => ({
+            ...status,
+            order: orderMap.get(status.id) ?? status.order,
+          }))
+          .sort((a, b) => a.order - b.order);
+
+        return {
+          ...old,
+          board: {
+            ...old.board,
+            statuses: updatedStatuses,
+          },
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(queryKeys.boards.detail(boardId), context.previousData);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.boards.detail(boardId) });
+    },
+  });
+}

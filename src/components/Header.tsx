@@ -5,13 +5,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/components/ThemeProvider';
 import { Sun, Moon, LogOut, LayoutDashboard, Search, Bell, Settings } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import GlobalSearch from './GlobalSearch';
+
+interface ProfileData {
+  avatar_url: string | null;
+  display_name: string | null;
+}
 
 export default function Header() {
   const { user, signOut } = useAuth();
   const { resolvedTheme, toggleTheme } = useTheme();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
 
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -26,8 +33,24 @@ export default function Header() {
       }
     };
 
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch('/api/profile');
+        const data = await response.json();
+        if (response.ok && data.profile) {
+          setProfile({
+            avatar_url: data.profile.avatar_url,
+            display_name: data.profile.display_name,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
     if (user) {
       fetchUnreadCount();
+      fetchProfile();
     }
   }, [user]);
 
@@ -114,9 +137,28 @@ export default function Header() {
                   </Link>
 
                   <div className="flex items-center gap-3 ml-2">
+                    {/* Avatar */}
+                    <div className="relative w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      {profile?.avatar_url ? (
+                        <Image
+                          src={profile.avatar_url}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                          {(profile?.display_name || user.email)?.[0]?.toUpperCase() || '?'}
+                        </span>
+                      )}
+                    </div>
+
                     <div className="hidden sm:block text-right">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                        {profile?.display_name ||
+                          user.user_metadata?.full_name ||
+                          user.email?.split('@')[0]}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
                     </div>

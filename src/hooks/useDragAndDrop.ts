@@ -14,16 +14,23 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import type { BoardWithData, Task } from '@/types/board';
+import type { BoardWithData, Task, Status } from '@/types/board';
 
 interface UseDragAndDropOptions {
   board: BoardWithData | null;
   onReorder: (statusId: string, tasks: Task[]) => void;
   onMove: (taskId: string, newStatusId: string, newOrder: number) => void;
+  onReorderStatuses?: (statuses: Array<{ id: string; order: number }>) => void;
 }
 
-export function useDragAndDrop({ board, onReorder, onMove }: UseDragAndDropOptions) {
+export function useDragAndDrop({
+  board,
+  onReorder,
+  onMove,
+  onReorderStatuses,
+}: UseDragAndDropOptions) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [activeColumn, setActiveColumn] = useState<Status | null>(null);
 
   // Configure sensors for drag detection
   const sensors = useSensors(
@@ -42,16 +49,31 @@ export function useDragAndDrop({ board, onReorder, onMove }: UseDragAndDropOptio
   }, [board]);
 
   /**
-   * Handle drag start - store the dragged task
+   * Handle drag start - store the dragged task or column
    */
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
-      const task = allTasks.find((t) => t.id === event.active.id);
+      const activeId = event.active.id as string;
+
+      // Check if dragging a column
+      if (activeId.startsWith('column-')) {
+        const statusId = activeId.replace('column-', '');
+        const status = board?.statuses.find((s) => s.id === statusId);
+        if (status) {
+          setActiveColumn(status);
+          setActiveTask(null);
+        }
+        return;
+      }
+
+      // Otherwise, dragging a task
+      const task = allTasks.find((t) => t.id === activeId);
       if (task) {
         setActiveTask(task);
+        setActiveColumn(null);
       }
     },
-    [allTasks]
+    [allTasks, board]
   );
 
   /**
@@ -76,12 +98,38 @@ export function useDragAndDrop({ board, onReorder, onMove }: UseDragAndDropOptio
     (event: DragEndEvent) => {
       const { active, over } = event;
       setActiveTask(null);
+      setActiveColumn(null);
 
       if (!over || !board) return;
 
       const activeId = active.id as string;
       const overId = over.id as string;
 
+      // Handle column reordering
+      if (activeId.startsWith('column-') && overId.startsWith('column-')) {
+        const activeStatusId = activeId.replace('column-', '');
+        const overStatusId = overId.replace('column-', '');
+
+        if (activeStatusId !== overStatusId && onReorderStatuses) {
+          const oldIndex = board.statuses.findIndex((s) => s.id === activeStatusId);
+          const newIndex = board.statuses.findIndex((s) => s.id === overStatusId);
+
+          if (oldIndex !== -1 && newIndex !== -1) {
+            const reorderedStatuses = arrayMove(board.statuses, oldIndex, newIndex);
+
+            // Update order property
+            const statusesWithNewOrder = reorderedStatuses.map((status, idx) => ({
+              id: status.id,
+              order: idx,
+            }));
+
+            onReorderStatuses(statusesWithNewOrder);
+          }
+        }
+        return;
+      }
+
+      // Handle task drag
       const activeTask = allTasks.find((t) => t.id === activeId);
       if (!activeTask) return;
 
@@ -121,12 +169,13 @@ export function useDragAndDrop({ board, onReorder, onMove }: UseDragAndDropOptio
         onMove(activeId, targetStatusId, Math.max(0, newIndex));
       }
     },
-    [board, allTasks, onReorder, onMove]
+    [board, allTasks, onReorder, onMove, onReorderStatuses]
   );
 
   return {
     sensors,
     activeTask,
+    activeColumn,
     allTasks,
     handleDragStart,
     handleDragOver,

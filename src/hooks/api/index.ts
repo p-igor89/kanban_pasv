@@ -29,4 +29,5 @@ export {
   useCreateStatusMutation,
   useUpdateStatusMutation,
   useDeleteStatusMutation,
+  useReorderStatusesMutation,
 } from './useBoardMutations';

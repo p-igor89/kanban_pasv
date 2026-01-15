@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, lazy, Suspense, useEffect } from 'react';
+import { useCallback, useState, lazy, Suspense, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
@@ -19,12 +19,16 @@ import {
   useCreateStatusMutation,
   useUpdateStatusMutation,
   useDeleteStatusMutation,
+  useReorderStatusesMutation,
 } from '@/hooks/api';
 
 // Other Hooks
 import { useDragAndDrop } from '@/hooks/useDragAndDrop';
 import { useRealtimeBoardState } from '@/hooks/useRealtimeBoard';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePresence } from '@/hooks/usePresence';
+import { useCursors } from '@/hooks/useCursors';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Components
 import { BoardHeader } from '@/components/board/BoardHeader';
@@ -37,10 +41,16 @@ const TaskDrawer = lazy(() => import('@/components/board/TaskDrawer'));
 const StatusModal = lazy(() => import('@/components/board/StatusModal'));
 const BoardMembersModal = lazy(() => import('@/components/board/BoardMembersModal'));
 
+// Lazy-loaded collaboration features
+const CursorOverlay = lazy(() =>
+  import('@/components/board/CursorOverlay').then((mod) => ({ default: mod.CursorOverlay }))
+);
+
 export default function BoardPageWithReactQuery() {
   const params = useParams();
   const router = useRouter();
   const boardId = params.boardId as string;
+  const { user } = useAuth();
 
   // React Query - fetch board data
   const { data: boardData, isLoading, error, refetch } = useBoard(boardId);
@@ -54,6 +64,7 @@ export default function BoardPageWithReactQuery() {
   const createStatusMutation = useCreateStatusMutation(boardId);
   const updateStatusMutation = useUpdateStatusMutation(boardId);
   const deleteStatusMutation = useDeleteStatusMutation(boardId);
+  const reorderStatusesMutation = useReorderStatusesMutation(boardId);
 
   // Local UI state
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
@@ -69,6 +80,25 @@ export default function BoardPageWithReactQuery() {
 
   // Permissions
   const permissions = usePermissions({ role: userRole });
+
+  // Presence - track online users
+  const { onlineUsers } = usePresence({
+    boardId,
+    userId: user?.id || '',
+    userEmail: user?.email || '',
+    userDisplayName: user?.user_metadata?.display_name || user?.user_metadata?.full_name,
+    userAvatarUrl: user?.user_metadata?.avatar_url,
+  });
+
+  // Cursors - track live cursor positions
+  const boardContainerRef = useRef<HTMLDivElement>(null);
+  const { cursors, updateCursor } = useCursors({
+    boardId,
+    userId: user?.id || '',
+    userEmail: user?.email || '',
+    userDisplayName: user?.user_metadata?.display_name || user?.user_metadata?.full_name,
+    enabled: !!user?.id,
+  });
 
   // Drag and drop logic
   const dragAndDrop = useDragAndDrop({
@@ -91,6 +121,14 @@ export default function BoardPageWithReactQuery() {
           },
         }
       );
+    },
+    onReorderStatuses: (statuses) => {
+      reorderStatusesMutation.mutate(statuses, {
+        onError: () => {
+          toast.error('Failed to save column order');
+          refetch();
+        },
+      });
     },
   });
 
@@ -288,11 +326,23 @@ export default function BoardPageWithReactQuery() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50 dark:bg-gray-900">
+    <div ref={boardContainerRef} className="flex h-screen flex-col bg-gray-50 dark:bg-gray-900">
+      {/* Live cursors overlay */}
+      <Suspense fallback={null}>
+        {cursors.length > 0 && (
+          <CursorOverlay
+            cursors={cursors}
+            onCursorMove={updateCursor}
+            containerRef={boardContainerRef}
+          />
+        )}
+      </Suspense>
+
       {/* Header */}
       <BoardHeader
         board={board}
         canEdit={canEdit}
+        onlineUsers={onlineUsers}
         onBack={() => router.push('/boards')}
         onOpenMembers={() => setIsMembersModalOpen(true)}
         onOpenStatusModal={() => handleOpenStatusModal()}
@@ -304,6 +354,7 @@ export default function BoardPageWithReactQuery() {
         canEdit={canEdit}
         sensors={dragAndDrop.sensors}
         activeTask={dragAndDrop.activeTask}
+        activeColumn={dragAndDrop.activeColumn}
         onDragStart={dragAndDrop.handleDragStart}
         onDragOver={dragAndDrop.handleDragOver}
         onDragEnd={dragAndDrop.handleDragEnd}
