@@ -75,23 +75,23 @@ All authentication providers have been configured:
 
 ## Future Enhancements
 
-### Phase 2: Real-time Features
+### Phase 2: Real-time Features (Completed)
 
-- [ ] Real-time comment updates via Supabase Realtime
-- [ ] Presence indicators for active users
-- [ ] Live cursor tracking for collaboration
+- [x] Real-time comment updates via Supabase Realtime
+- [x] Presence indicators for active users
+- [x] Live cursor tracking for collaboration
 
-### Phase 3: Advanced Features
+### Phase 3: Advanced Features (Completed)
 
-- [ ] Email notifications via Edge Functions
-- [ ] Webhook integrations
-- [ ] Export boards to PDF/CSV
+- [x] Email notifications via Edge Functions
+- [x] Webhook integrations
+- [x] Export boards to PDF/CSV (HTML format)
 
-### Phase 4: Undo/Redo
+### Phase 4: Undo/Redo (Completed)
 
-- [ ] useUndoRedo hook with Command pattern
-- [ ] Keyboard shortcuts: Ctrl+Z (undo), Ctrl+Y (redo)
-- [ ] Session-based history (50 actions max)
+- [x] useUndoRedo hook with Command pattern
+- [x] Keyboard shortcuts: Ctrl+Z (undo), Ctrl+Y (redo), Ctrl+Shift+Z (redo)
+- [x] Session-based history (50 actions max)
 
 ---
 

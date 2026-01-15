@@ -42,9 +42,10 @@ const StatusModal = lazy(() => import('@/components/board/StatusModal'));
 const BoardMembersModal = lazy(() => import('@/components/board/BoardMembersModal'));
 
 // Lazy-loaded collaboration features
-const CursorOverlay = lazy(() =>
-  import('@/components/board/CursorOverlay').then((mod) => ({ default: mod.CursorOverlay }))
-);
+const CursorOverlay = lazy(async () => {
+  const mod = await import('@/components/board/CursorOverlay');
+  return { default: mod.CursorOverlay };
+});
 
 export default function BoardPageWithReactQuery() {
   const params = useParams();

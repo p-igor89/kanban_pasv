@@ -2,10 +2,13 @@
 
 import { ArrowLeft, Plus, Users } from 'lucide-react';
 import type { BoardWithData } from '@/types/board';
+import { PresenceUser } from '@/hooks/usePresence';
+import { PresenceAvatars } from './PresenceAvatars';
 
 interface BoardHeaderProps {
   board: BoardWithData;
   canEdit: boolean;
+  onlineUsers?: PresenceUser[];
   onBack: () => void;
   onOpenMembers: () => void;
   onOpenStatusModal: () => void;
@@ -14,6 +17,7 @@ interface BoardHeaderProps {
 export function BoardHeader({
   board,
   canEdit,
+  onlineUsers = [],
   onBack,
   onOpenMembers,
   onOpenStatusModal,
@@ -37,27 +41,32 @@ export function BoardHeader({
         </div>
       </div>
 
-      {/* Right side - Actions */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={onOpenMembers}
-          className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-          aria-label="Manage board members"
-        >
-          <Users className="h-4 w-4" />
-          Members
-        </button>
+      {/* Right side - Presence + Actions */}
+      <div className="flex items-center gap-4">
+        {/* Online users */}
+        {onlineUsers.length > 0 && <PresenceAvatars users={onlineUsers} />}
 
-        {canEdit && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={onOpenStatusModal}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            aria-label="Add new status"
+            onClick={onOpenMembers}
+            className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+            aria-label="Manage board members"
           >
-            <Plus className="h-4 w-4" />
-            Add Status
+            <Users className="h-4 w-4" />
+            Members
           </button>
-        )}
+
+          {canEdit && (
+            <button
+              onClick={onOpenStatusModal}
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              aria-label="Add new status"
+            >
+              <Plus className="h-4 w-4" />
+              Add Status
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );

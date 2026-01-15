@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { notifyOnComment } from '@/services/notificationService';
 
 // GET /api/boards/[boardId]/tasks/[taskId]/comments
 export async function GET(
@@ -102,6 +103,31 @@ export async function POST(
       action: 'comment_added',
       details: { comment_id: comment.id },
     });
+
+    // Send notifications (async, don't block response)
+    (async () => {
+      try {
+        // Get board and task info for notification
+        const [boardResult, taskResult] = await Promise.all([
+          supabase.from('boards').select('name').eq('id', boardId).single(),
+          supabase.from('tasks').select('title').eq('id', taskId).single(),
+        ]);
+
+        if (boardResult.data && taskResult.data) {
+          await notifyOnComment({
+            boardId,
+            taskId,
+            taskTitle: taskResult.data.title,
+            boardName: boardResult.data.name,
+            commenterId: user.id,
+            commenterName: profile?.display_name || profile?.email || 'Someone',
+            commentText: content.trim(),
+          });
+        }
+      } catch (notifyError) {
+        console.error('Failed to send comment notifications:', notifyError);
+      }
+    })();
 
     return NextResponse.json({ comment: commentWithProfile }, { status: 201 });
   } catch {
