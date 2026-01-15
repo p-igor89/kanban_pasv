@@ -19,6 +19,24 @@ const CsrfContext = createContext<CsrfContextValue>({
   refreshToken: async () => {},
 });
 
+/**
+ * Get CSRF token from cookie
+ */
+function getCsrfTokenFromCookie(): string | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const cookies = document.cookie.split(';');
+  const csrfCookie = cookies.find((c) => c.trim().startsWith('csrf_token='));
+
+  if (!csrfCookie) {
+    return null;
+  }
+
+  return csrfCookie.split('=')[1];
+}
+
 export function CsrfProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +58,14 @@ export function CsrfProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    refreshToken();
+    // Check if token already exists in cookie before fetching
+    const existingToken = getCsrfTokenFromCookie();
+    if (existingToken) {
+      setToken(existingToken);
+      setIsLoading(false);
+    } else {
+      refreshToken();
+    }
   }, []);
 
   return (
