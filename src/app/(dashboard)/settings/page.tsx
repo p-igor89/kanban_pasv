@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, User, Bell, Mail, Save, Check } from 'lucide-react';
+import { ArrowLeft, Loader2, Bell, Mail, Save, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import FormInput from '@/components/ui/FormInput';
+import AvatarUpload from '@/components/ui/AvatarUpload';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
 
@@ -162,13 +163,26 @@ export default function SettingsPage() {
 
       {/* Profile Section */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-            <User className="h-5 w-5 text-blue-600" />
-          </div>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Profile</h2>
+
+        {/* Avatar Upload */}
+        <div className="flex items-center gap-4 pb-4 border-b border-gray-200 dark:border-gray-700 mb-4">
+          <AvatarUpload
+            currentAvatarUrl={profile?.avatar_url || null}
+            displayName={displayName}
+            email={profile?.email || ''}
+            onUploadSuccess={(newUrl) => {
+              setProfile((prev) => (prev ? { ...prev, avatar_url: newUrl } : null));
+            }}
+            onRemove={() => {
+              setProfile((prev) => (prev ? { ...prev, avatar_url: null } : null));
+            }}
+            size="lg"
+          />
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Profile</h2>
-            <p className="text-sm text-gray-500">{profile?.email}</p>
+            <p className="font-medium text-gray-900 dark:text-white">Profile Photo</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Click to upload. Max 5MB.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{profile?.email}</p>
           </div>
         </div>
 

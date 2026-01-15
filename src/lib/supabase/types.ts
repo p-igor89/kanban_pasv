@@ -464,6 +464,92 @@ export type Database = {
           },
         ];
       };
+      webhooks: {
+        Row: {
+          id: string;
+          board_id: string;
+          url: string;
+          events: string[];
+          secret: string;
+          is_active: boolean;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          board_id: string;
+          url: string;
+          events: string[];
+          secret: string;
+          is_active?: boolean;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          board_id?: string;
+          url?: string;
+          events?: string[];
+          secret?: string;
+          is_active?: boolean;
+          created_by?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'webhooks_board_id_fkey';
+            columns: ['board_id'];
+            isOneToOne: false;
+            referencedRelation: 'boards';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'webhooks_created_by_fkey';
+            columns: ['created_by'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      webhook_deliveries: {
+        Row: {
+          id: string;
+          webhook_id: string;
+          event: string;
+          payload: Json;
+          success: boolean;
+          delivered_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          webhook_id: string;
+          event: string;
+          payload: Json;
+          success: boolean;
+          delivered_at: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          webhook_id?: string;
+          event?: string;
+          payload?: Json;
+          success?: boolean;
+          delivered_at?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'webhook_deliveries_webhook_id_fkey';
+            columns: ['webhook_id'];
+            isOneToOne: false;
+            referencedRelation: 'webhooks';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

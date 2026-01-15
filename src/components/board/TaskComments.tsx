@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Send, Loader2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { fetchWithCsrf } from '@/lib/security/fetch-with-csrf';
+import { useRealtimeComments, RealtimeComment } from '@/hooks/useRealtimeComments';
 
 interface Profile {
   id: string;
@@ -36,8 +37,52 @@ export default function TaskComments({ boardId, taskId }: TaskCommentsProps) {
   const [deleting, setDeleting] = useState(false);
   const [deleteCommentId, setDeleteCommentId] = useState<string | null>(null);
 
+  // Track IDs of comments we've just added locally to prevent duplicates
+  const locallyAddedIds = useRef<Set<string>>(new Set());
+
+  // Realtime handlers
+  const handleRealtimeInsert = useCallback((realtimeComment: RealtimeComment) => {
+    // Skip if we just added this comment locally
+    if (locallyAddedIds.current.has(realtimeComment.id)) {
+      locallyAddedIds.current.delete(realtimeComment.id);
+      return;
+    }
+    // Convert RealtimeComment to local Comment type
+    const comment: Comment = {
+      ...realtimeComment,
+      profile: realtimeComment.profile as Profile,
+    };
+    setComments((prev) => {
+      // Check if comment already exists
+      if (prev.some((c) => c.id === comment.id)) return prev;
+      return [...prev, comment];
+    });
+  }, []);
+
+  const handleRealtimeUpdate = useCallback((realtimeComment: RealtimeComment) => {
+    const comment: Comment = {
+      ...realtimeComment,
+      profile: realtimeComment.profile as Profile,
+    };
+    setComments((prev) => prev.map((c) => (c.id === comment.id ? { ...c, ...comment } : c)));
+  }, []);
+
+  const handleRealtimeDelete = useCallback((commentId: string) => {
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+  }, []);
+
+  // Subscribe to realtime updates
+  useRealtimeComments({
+    taskId,
+    onCommentInsert: handleRealtimeInsert,
+    onCommentUpdate: handleRealtimeUpdate,
+    onCommentDelete: handleRealtimeDelete,
+  });
+
   useEffect(() => {
     fetchComments();
+    // Clear locally added IDs when taskId changes
+    locallyAddedIds.current.clear();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [taskId]);
 
@@ -77,6 +122,8 @@ export default function TaskComments({ boardId, taskId }: TaskCommentsProps) {
         throw new Error(data.error || 'Failed to add comment');
       }
 
+      // Track this ID to prevent duplicate from realtime
+      locallyAddedIds.current.add(data.comment.id);
       setComments((prev) => [...prev, data.comment]);
       setNewComment('');
     } catch (error) {
