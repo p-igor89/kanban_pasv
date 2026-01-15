@@ -138,14 +138,14 @@ export default function Header() {
 
                   <div className="flex items-center gap-3 ml-2">
                     {/* Avatar */}
-                    <div className="relative w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {profile?.avatar_url ? (
                         <Image
                           src={profile.avatar_url}
                           alt=""
-                          fill
-                          className="object-cover"
-                          unoptimized
+                          width={32}
+                          height={32}
+                          className="rounded-full object-cover"
                         />
                       ) : (
                         <span className="text-sm font-medium text-gray-600 dark:text-gray-300">

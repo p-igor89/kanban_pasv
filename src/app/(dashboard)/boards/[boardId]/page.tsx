@@ -19,7 +19,6 @@ import {
   useCreateStatusMutation,
   useUpdateStatusMutation,
   useDeleteStatusMutation,
-  useReorderStatusesMutation,
 } from '@/hooks/api';
 
 // Other Hooks
@@ -42,10 +41,9 @@ const StatusModal = lazy(() => import('@/components/board/StatusModal'));
 const BoardMembersModal = lazy(() => import('@/components/board/BoardMembersModal'));
 
 // Lazy-loaded collaboration features
-const CursorOverlay = lazy(async () => {
-  const mod = await import('@/components/board/CursorOverlay');
-  return { default: mod.CursorOverlay };
-});
+const CursorOverlay = lazy(() =>
+  import('@/components/board/CursorOverlay').then((mod) => ({ default: mod.CursorOverlay }))
+);
 
 export default function BoardPageWithReactQuery() {
   const params = useParams();
@@ -65,7 +63,6 @@ export default function BoardPageWithReactQuery() {
   const createStatusMutation = useCreateStatusMutation(boardId);
   const updateStatusMutation = useUpdateStatusMutation(boardId);
   const deleteStatusMutation = useDeleteStatusMutation(boardId);
-  const reorderStatusesMutation = useReorderStatusesMutation(boardId);
 
   // Local UI state
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
@@ -122,14 +119,6 @@ export default function BoardPageWithReactQuery() {
           },
         }
       );
-    },
-    onReorderStatuses: (statuses) => {
-      reorderStatusesMutation.mutate(statuses, {
-        onError: () => {
-          toast.error('Failed to save column order');
-          refetch();
-        },
-      });
     },
   });
 
@@ -355,7 +344,6 @@ export default function BoardPageWithReactQuery() {
         canEdit={canEdit}
         sensors={dragAndDrop.sensors}
         activeTask={dragAndDrop.activeTask}
-        activeColumn={dragAndDrop.activeColumn}
         onDragStart={dragAndDrop.handleDragStart}
         onDragOver={dragAndDrop.handleDragOver}
         onDragEnd={dragAndDrop.handleDragEnd}

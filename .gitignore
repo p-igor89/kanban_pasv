@@ -55,3 +55,6 @@ ihor-space/
 # Logs
 logs/
 *.log
+
+# Documentation
+docs/
