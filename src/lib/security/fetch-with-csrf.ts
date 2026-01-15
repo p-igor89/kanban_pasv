@@ -4,6 +4,9 @@
 
 const CSRF_HEADER_NAME = 'x-csrf-token';
 
+// Singleton promise for CSRF token fetch - prevents duplicate requests
+let csrfFetchPromise: Promise<string | null> | null = null;
+
 /**
  * Get CSRF token from cookie
  */
@@ -23,6 +26,36 @@ function getCsrfTokenFromCookie(): string | null {
 }
 
 /**
+ * Fetch CSRF token with deduplication
+ * Multiple concurrent calls will share the same request
+ */
+async function fetchCsrfToken(): Promise<string | null> {
+  // If there's already a fetch in progress, wait for it
+  if (csrfFetchPromise) {
+    return csrfFetchPromise;
+  }
+
+  // Start a new fetch and store the promise
+  csrfFetchPromise = (async () => {
+    try {
+      const response = await fetch('/api/csrf');
+      const data = await response.json();
+      return data.token || null;
+    } catch (error) {
+      console.error('Failed to fetch CSRF token:', error);
+      return null;
+    } finally {
+      // Clear the promise after a short delay to allow cookie to be set
+      setTimeout(() => {
+        csrfFetchPromise = null;
+      }, 100);
+    }
+  })();
+
+  return csrfFetchPromise;
+}
+
+/**
  * Fetch with automatic CSRF token injection
  */
 export async function fetchWithCsrf(
@@ -33,19 +66,20 @@ export async function fetchWithCsrf(
 
   // For state-changing requests, add CSRF token
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-    const token = getCsrfTokenFromCookie();
+    let token = getCsrfTokenFromCookie();
 
     if (!token) {
-      // Try to get token from API
-      const response = await fetch('/api/csrf');
-      const data = await response.json();
+      // Fetch token with deduplication
+      token = await fetchCsrfToken();
 
-      if (data.token) {
-        // Token is now in cookie, retry
-        return fetchWithCsrf(input, init);
+      if (!token) {
+        // Try reading from cookie again (it may have been set by the fetch)
+        token = getCsrfTokenFromCookie();
       }
 
-      throw new Error('Failed to get CSRF token');
+      if (!token) {
+        throw new Error('Failed to get CSRF token');
+      }
     }
 
     // Add CSRF token to headers
